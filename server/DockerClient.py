@@ -27,7 +27,7 @@ class DockerClient:
 
     def pull_image(self, src, repo, tag):
         repo = src + '/' + repo
-        response = self.client.images.pull(repository=repo, tag=tag)
+        self.client.images.pull(repository=repo, tag=tag)
         return repo + ':' + tag
 
     def push_image(self, repo, tags):

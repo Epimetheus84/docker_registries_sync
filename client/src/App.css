@@ -1,0 +1,39 @@
+body {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+#root {
+  float: left;
+  width: 100%;
+}
+.App {
+  margin: 0 auto;
+  width: 1400px;
+  text-align: center;
+}
+.App .images-list {
+  width: 500px;
+  display: block;
+  float: left;
+  margin: 20px;
+}
+.App .images-list .form-control {
+  width: 100%;
+}
+.App .images-list .form-control select {
+  background: #f2f2f2;
+  height: 800px;
+  padding: 5px;
+}
+.App .actions-list {
+  display: block;
+  float: left;
+  margin: 300px 0px 20px;
+}
+.App .button-wrapper {
+  margin: 20px 0px;
+}
+.App .button-wrapper button {
+  width: 100%;
+}

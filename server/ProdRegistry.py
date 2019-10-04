@@ -2,4 +2,6 @@ from server.DockerRegistry import DockerRegistry
 
 
 class ProdRegistry(DockerRegistry):
-    ADDRESS = 'unix://var/run/docker.sock'
+    ADDRESS = 'localhost:5005'
+    USERNAME = ''
+    PASSWORD = ''
