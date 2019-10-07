@@ -1,6 +1,6 @@
 import docker
 
-from server.schema import SCHEMA
+from schema import SCHEMA
 
 
 class DockerClient:
@@ -30,8 +30,8 @@ class DockerClient:
         self.client.images.pull(repository=repo, tag=tag)
         return repo + ':' + tag
 
-    def push_image(self, repo, tags):
-        output = self.client.images.push(repository=repo, tag=tags)
+    def push_image(self, repo, tag):
+        output = self.client.images.push(repository=repo, tag=tag)
 
         for line in output:
             print(line)

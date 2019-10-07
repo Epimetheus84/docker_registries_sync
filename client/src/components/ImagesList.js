@@ -1,11 +1,11 @@
 import React from 'react'
-import InputLabel from '@material-ui/core/InputLabel';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
+import InputLabel from '@material-ui/core/InputLabel'
+import FormControl from '@material-ui/core/FormControl'
+import Select from '@material-ui/core/Select'
 
 class ImagesList extends React.Component {
     render() {
-        const { title, images } = this.props
+        const { title, images, selected, handleChange } = this.props
         return (
             <FormControl className='form-control'>
                 <InputLabel shrink>
@@ -14,6 +14,8 @@ class ImagesList extends React.Component {
                 <Select
                     multiple
                     native
+                    value={selected}
+                    onChange={handleChange}
                 >
                     {Object.values(images).map(image => {
                         const key = image.name + ':' + image.tag

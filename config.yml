@@ -1,0 +1,9 @@
+dev_registry:
+    ADDRESS: localhost:5000
+    USERNAME:
+    PASSWORD:
+prod_registry:
+    ADDRESS: localhost:5005
+    USERNAME:
+    PASSWORD:
+
