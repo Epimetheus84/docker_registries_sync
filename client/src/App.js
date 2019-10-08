@@ -12,8 +12,8 @@ class App extends React.Component {
     constructor(props) {
         super(props)
         this.state = {
-            devImages: {},
-            prodImages: {},
+            srcImages: {},
+            dstImages: {},
             selectedDev: [],
             selectedProd: [],
             semWaiting: 2
@@ -22,10 +22,10 @@ class App extends React.Component {
     }
 
     getReposData() {
-        axios.get('http://localhost:8080/api/images/dev').then(res => {
+        axios.get('http://localhost:8080/api/images/src').then(res => {
             const images = res.data
             this.setState({
-                devImages: images,
+                srcImages: images,
                 semWaiting: this.state.semWaiting - 1
             })
         }).catch(err => {
@@ -35,10 +35,10 @@ class App extends React.Component {
             })
         })
 
-        axios.get('http://localhost:8080/api/images/prod').then(res => {
+        axios.get('http://localhost:8080/api/images/dst').then(res => {
             const images = res.data
             this.setState({
-                prodImages: images,
+                dstImages: images,
                 semWaiting: this.state.semWaiting - 1
             })
         }).catch(err => {
@@ -63,10 +63,10 @@ class App extends React.Component {
     moveImage(image) {
         const { selectedDev, selectedProd } = this.state
         let selected = selectedDev
-        let url = 'prod'
+        let url = 'dst'
         if (selectedProd.length > 0) {
             selected = selectedProd
-            url = 'dev'
+            url = 'src'
         }
         if (selected.length === 0) alert('Choose image(s)');
         this.setState({
@@ -82,10 +82,10 @@ class App extends React.Component {
     removeImage() {
         const { selectedDev, selectedProd } = this.state
         let selected = selectedDev
-        let url = 'dev'
+        let url = 'src'
         if (selectedProd.length > 0) {
             selected = selectedProd
-            url = 'prod'
+            url = 'dst'
         }
         if (selected.length === 0) alert('Choose image(s)');
         this.setState({
@@ -132,7 +132,7 @@ class App extends React.Component {
     }
 
     render() {
-        const {devImages, prodImages, selectedDev, selectedProd, semWaiting} = this.state
+        const {srcImages, dstImages, selectedDev, selectedProd, semWaiting} = this.state
         console.log(semWaiting)
         return (
             <div className='App'>
@@ -141,8 +141,8 @@ class App extends React.Component {
                 </div> }
                 <div className='images-list'>
                     <ImagesList
-                        images={devImages}
-                        title="dev"
+                        images={srcImages}
+                        title="src"
                         selected={selectedDev}
                         handleChange={(event) => {
                             this.setState({
@@ -160,7 +160,7 @@ class App extends React.Component {
                             onClick={()=>{this.moveImage()}}
                             endIcon={<ArrowForward />}
                         >
-                            Копировать на prod
+                            Копировать на dev
                         </Button>
                     </div>}
                     { selectedProd.length > 0 && <div className='button-wrapper'>
@@ -170,7 +170,7 @@ class App extends React.Component {
                             onClick={()=>{this.moveImage()}}
                             startIcon={<ArrowBack />}
                         >
-                            Копировать на dev
+                            Копировать на prod
                         </Button>
                     </div>}
                     <div className='button-wrapper'>
@@ -186,8 +186,8 @@ class App extends React.Component {
                 </div>
                 <div className='images-list'>
                     <ImagesList
-                        images={prodImages}
-                        title="prod"
+                        images={dstImages}
+                        title="dst"
                         selected={selectedProd}
                         handleChange={(event) => {
                             this.setState({

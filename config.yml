@@ -1,9 +1,10 @@
-dev_registry:
+src_registry:
     ADDRESS: localhost:5000
     USERNAME:
     PASSWORD:
-prod_registry:
+dst_registry:
     ADDRESS: localhost:5005
     USERNAME:
     PASSWORD:
-
+force_sync: 1
+prefixes: ['']

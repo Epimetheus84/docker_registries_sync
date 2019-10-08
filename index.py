@@ -9,16 +9,14 @@ with open("config.yml", 'r') as ymlfile:
 
 api = Flask(__name__)
 
-dev_reg = DockerRegistry(cfg['dev_registry']['ADDRESS'], cfg['dev_registry']['USERNAME'],
-                         cfg['dev_registry']['PASSWORD'])
-prod_reg = DockerRegistry(cfg['prod_registry']['ADDRESS'], cfg['prod_registry']['USERNAME'],
-                          cfg['prod_registry']['PASSWORD'])
+src_reg = DockerRegistry(cfg['src_registry']['ADDRESS'], cfg['src_registry']['USERNAME'],
+                         cfg['src_registry']['PASSWORD'])
+dst_reg = DockerRegistry(cfg['dst_registry']['ADDRESS'], cfg['dst_registry']['USERNAME'],
+                         cfg['dst_registry']['PASSWORD'])
 
 docker_cli = DockerClient()
-docker_cli.login(dev_reg.ADDRESS, dev_reg.USERNAME, dev_reg.PASSWORD)
-docker_cli.login(prod_reg.ADDRESS, prod_reg.USERNAME, prod_reg.PASSWORD)
-
-CLIENT_URL = 'http://localhost:3000'
+docker_cli.login(src_reg.ADDRESS, src_reg.USERNAME, src_reg.PASSWORD)
+docker_cli.login(dst_reg.ADDRESS, dst_reg.USERNAME, dst_reg.PASSWORD)
 
 
 @api.route('/', defaults={'path': ''})
@@ -41,16 +39,16 @@ def send_css(path):
 
 # http сервис должен уметь:
 # список имеджей на деве
-@api.route('/api/images/dev', methods=['GET'])
-def get_dev_images():
-    images = dev_reg.images_list()
+@api.route('/api/images/src', methods=['GET'])
+def get_src_images():
+    images = src_reg.images_list()
     return jsonify(images)
 
 
 # список имеджей на проде
-@api.route('/api/images/prod', methods=['GET'])
-def get_prod_images():
-    images = prod_reg.images_list()
+@api.route('/api/images/dst', methods=['GET'])
+def get_dst_images():
+    images = dst_reg.images_list()
     return jsonify(images)
 
 
@@ -60,33 +58,36 @@ def move(server):
     req = request.get_json()
     images = req['images']
 
-    pull_server = prod_reg.ADDRESS
-    push_server = dev_reg.ADDRESS
-    if server == 'prod':
-        pull_server = dev_reg.ADDRESS
-        push_server = prod_reg.ADDRESS
+    pull_server = dst_reg.ADDRESS
+    push_server = src_reg.ADDRESS
+    if server == 'dst':
+        pull_server = src_reg.ADDRESS
+        push_server = dst_reg.ADDRESS
 
     for src_image in images:
         src_repo, src_tag = src_image.split(':')
 
-        # скачиваем с дева по соурс тегу
-        pulled_image_name = docker_cli.pull_image(pull_server, src_repo, src_tag)
-        pulled_image = docker_cli.get_image(pulled_image_name)
-
-        # меняем в теге урл на прод
-        new_tag = src_tag
-        new_repo = push_server + '/' + src_repo
-
-        pulled_image.tag(repository=new_repo, tag=new_tag)
-
-        # пушим на проду
-        docker_cli.push_image(new_repo, new_tag)
-
-        # удаляем локальный имейдж
-        docker_cli.remove_image(pulled_image_name)
+        move_image(pull_server, push_server, src_repo, src_tag)
 
     return 'OK'
 
+
+def move_image(pull_server, push_server, src_repo, src_tag):
+    # скачиваем с дева по соурс тегу
+    pulled_image_name = docker_cli.pull_image(pull_server, src_repo, src_tag)
+    pulled_image = docker_cli.get_image(pulled_image_name)
+
+    # меняем в теге урл на прод
+    new_tag = src_tag
+    new_repo = push_server + '/' + src_repo
+
+    pulled_image.tag(repository=new_repo, tag=new_tag)
+
+    # пушим на проду
+    docker_cli.push_image(new_repo, new_tag)
+
+    # удаляем локальный имейдж
+    docker_cli.remove_image(pulled_image_name)
 
 # удаление с любого из
 @api.route('/api/remove/<string:server>/', methods=['POST'])
@@ -98,9 +99,9 @@ def remove(server):
     if 'force' in req:
         force = True
 
-    docker_reg = dev_reg
-    if server == 'prod':
-        docker_reg = prod_reg
+    docker_reg = src_reg
+    if server == 'dst':
+        docker_reg = dst_reg
 
     response = {
         'status': 'ok'
@@ -118,15 +119,43 @@ def remove(server):
     return jsonify(response)
 
 
-# url, в котором по крону синхронизируются все имеджи
-api.run(port=8080)
+def filter_tags(images):
+    res = list()
+    for image in images:
+        for prefix in cfg['prefixes']:
+            if not image['tag'].startswith(prefix):
+                continue
+            res.append(image)
 
-# image_id = dev_reg.get_image_id(image)
-# print(image_id)
-#
-# pulled_image = docker_cli.pull_image(dev_reg.ADDRESS, image['name'], image['tag'])
-#
-# ubuntu = docker_cli.get_image('localhost:5000/my-ubuntu:latest')
-# docker_cli.remove_image(pulled_image)
-#
-# dev_reg.remove_image(image)
+    return res
+
+# метод синхронизации всех докер имеджей
+@api.route('/api/synchronize/')
+def synchronize():
+    # получаем список имеджей слева
+    src_images = src_reg.images_list()
+    # получаем список имеджей справа
+    dst_images = dst_reg.images_list()
+    # вытаскиваем только нужные, основываясь на префиксах тегов
+    src_images = filter_tags(src_images)
+    dst_images = filter_tags(dst_images)
+    # создаем список лишних на проде
+    excess_images = [item for item in dst_images if item not in src_images]
+    print(excess_images)
+    # проверяем включен ли флаг жесткой синхронизации
+    force = False
+    if 'force_sync' in cfg:
+        force = True
+    # сносим лишние
+    for excess_image in excess_images:
+        dst_reg.remove_image(excess_image['name'], excess_image['tag'], force)
+
+    # создаем список недостающих на проде
+    missing_images = [item for item in src_images if item not in dst_images]
+    # переносим недостающие
+    for missing_image in missing_images:
+        move_image(src_reg.ADDRESS, dst_reg.ADDRESS, missing_image['name'], missing_image['tag'])
+
+    return 'OK'
+
+api.run(port=8080)
