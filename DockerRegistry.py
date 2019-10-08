@@ -1,5 +1,4 @@
 import requests
-import json
 
 from schema import SCHEMA
 
@@ -39,32 +38,41 @@ class DockerRegistry:
 
         return res
 
-    def get_image_data(self, repo, tag):
-        response = requests.get(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + tag,)
-        return response.json()
+    def get_image_id(self, repo, tag):
+        response = requests.get(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + tag,
+                                headers=self.headers)
 
-    def remove_image(self, repo, tag):
-        image_data = self.get_image_data(repo, tag)
-        print(image_data)
-        # empty_manifest = '{' \
+        if 'Docker-Content-Digest' not in response.headers:
+            return False
 
-        #                  '"name": <name>,' \
-        #                  '"tag": <tag>,' \
-        #                  '"fsLayers": [' \
-        #                  '{' \
-        #                  '"blobSum": "<digest>"' \
-        #                  '},' \
-        #                  ']' \
-        #                  '],' \
-        #                  '"history": <v1 images>,' \
-        #                  '"signature": <JWS>' \
-        #                  '}'
-        put_res = requests.put(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + tag,
-                     json.dumps(image_data))
-        print(put_res.json())
-        image_data = self.get_image_data(repo, tag)
-        print(image_data)
-        # requests.delete(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + image_id,
-        #              headers=self.headers)
+        return response.headers['Docker-Content-Digest']
+
+    def find_duplicates(self, repo, tag, original_id):
+        # проверяем существуют ли еще теги с таким id
+        duplicate_images = list()
+
+        repo_tags = self.repository_tags(repo)
+        repo_tags.remove(tag)
+
+        for repo_tag in repo_tags:
+            repo_image_id = self.get_image_id(repo, repo_tag)
+            if repo_image_id != original_id:
+                continue
+            duplicate_images.append(repo_tag)
+
+        return duplicate_images
+
+    def remove_image(self, repo, tag, force=False):
+        image_id = self.get_image_id(repo, tag)
+
+        if not force:
+            duplicate_images = self.find_duplicates(repo, tag, image_id)
+            if duplicate_images.__len__() > 0:
+                return duplicate_images
+
+        if not image_id:
+            return False
+
+        requests.delete(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + image_id,
+                        headers=self.headers)
         return True
-

@@ -1,7 +1,6 @@
 import yaml
 from flask import Flask, jsonify, request, send_from_directory
 
-
 from DockerRegistry import DockerRegistry
 from DockerClient import DockerClient
 
@@ -9,7 +8,6 @@ with open("config.yml", 'r') as ymlfile:
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
 api = Flask(__name__)
-
 
 dev_reg = DockerRegistry(cfg['dev_registry']['ADDRESS'], cfg['dev_registry']['USERNAME'],
                          cfg['dev_registry']['PASSWORD'])
@@ -20,11 +18,8 @@ docker_cli = DockerClient()
 docker_cli.login(dev_reg.ADDRESS, dev_reg.USERNAME, dev_reg.PASSWORD)
 docker_cli.login(prod_reg.ADDRESS, prod_reg.USERNAME, prod_reg.PASSWORD)
 
-
 CLIENT_URL = 'http://localhost:3000'
 
-print(dev_reg.remove_image('my-ubuntu_4', 'alpine'))
-exit()
 
 @api.route('/', defaults={'path': ''})
 @api.route('/<path:path>')
@@ -65,18 +60,22 @@ def move(server):
     req = request.get_json()
     images = req['images']
 
+    pull_server = prod_reg.ADDRESS
+    push_server = dev_reg.ADDRESS
+    if server == 'prod':
+        pull_server = dev_reg.ADDRESS
+        push_server = prod_reg.ADDRESS
+
     for src_image in images:
         src_repo, src_tag = src_image.split(':')
 
         # скачиваем с дева по соурс тегу
-        pulled_image_name = docker_cli.pull_image(dev_reg.ADDRESS, src_repo, src_tag)
+        pulled_image_name = docker_cli.pull_image(pull_server, src_repo, src_tag)
         pulled_image = docker_cli.get_image(pulled_image_name)
 
         # меняем в теге урл на прод
         new_tag = src_tag
-        new_repo = dev_reg.ADDRESS + '/' + src_repo
-        if server == 'prod':
-            new_repo = prod_reg.ADDRESS + '/' + src_repo
+        new_repo = push_server + '/' + src_repo
 
         pulled_image.tag(repository=new_repo, tag=new_tag)
 
@@ -93,18 +92,30 @@ def move(server):
 @api.route('/api/remove/<string:server>/', methods=['POST'])
 def remove(server):
     req = request.get_json()
-    images = req['images']
+    src_image = req['image']
+
+    force = False
+    if 'force' in req:
+        force = True
 
     docker_reg = dev_reg
     if server == 'prod':
         docker_reg = prod_reg
 
-    for src_image in images:
-        src_repo, src_tag = src_image.split(':')
+    response = {
+        'status': 'ok'
+    }
 
-        docker_reg.remove_image(src_repo, src_tag)
+    src_repo, src_tag = src_image.split(':')
 
-    return 'OK'
+    result = docker_reg.remove_image(src_repo, src_tag, force)
+    if type(result) is list:
+        response = {
+            'status': 'warning',
+            'duplicates': result
+        }
+
+    return jsonify(response)
 
 
 # url, в котором по крону синхронизируются все имеджи

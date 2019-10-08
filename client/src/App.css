@@ -9,11 +9,11 @@ body {
 }
 .App {
   margin: 0 auto;
-  width: 1400px;
+  width: 1000px;
   text-align: center;
 }
 .App .images-list {
-  width: 500px;
+  width: 350px;
   display: block;
   float: left;
   margin: 20px;
@@ -30,6 +30,7 @@ body {
   display: block;
   float: left;
   margin: 300px 0px 20px;
+  width: 220px;
 }
 .App .button-wrapper {
   margin: 20px 0px;
@@ -37,3 +38,50 @@ body {
 .App .button-wrapper button {
   width: 100%;
 }
+.preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #00000030;
+    z-index: 1;
+}
+.lds-ring {
+  display: inline-block;
+  position: relative;
+  width: 64px;
+  height: 64px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.lds-ring div {
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 51px;
+  height: 51px;
+  margin: 6px;
+  border: 6px solid #fff;
+  border-radius: 50%;
+  animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-color: #0047c8 transparent transparent transparent;
+}
+.lds-ring div:nth-child(1) {
+  animation-delay: -0.45s;
+}
+.lds-ring div:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.lds-ring div:nth-child(3) {
+  animation-delay: -0.15s;
+}
+@keyframes lds-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+

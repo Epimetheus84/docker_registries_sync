@@ -15,7 +15,8 @@ class App extends React.Component {
             devImages: {},
             prodImages: {},
             selectedDev: [],
-            selectedProd: []
+            selectedProd: [],
+            semWaiting: 2
         }
         this.getReposData()
     }
@@ -24,13 +25,26 @@ class App extends React.Component {
         axios.get('http://localhost:8080/api/images/dev').then(res => {
             const images = res.data
             this.setState({
-                devImages: images
+                devImages: images,
+                semWaiting: this.state.semWaiting - 1
+            })
+        }).catch(err => {
+            console.log(err)
+            this.setState({
+                semWaiting: this.state.semWaiting - 1
             })
         })
+
         axios.get('http://localhost:8080/api/images/prod').then(res => {
             const images = res.data
             this.setState({
-                prodImages: images
+                prodImages: images,
+                semWaiting: this.state.semWaiting - 1
+            })
+        }).catch(err => {
+            console.log(err)
+            this.setState({
+                semWaiting: this.state.semWaiting - 1
             })
         })
     }
@@ -55,6 +69,9 @@ class App extends React.Component {
             url = 'dev'
         }
         if (selected.length === 0) alert('Choose image(s)');
+        this.setState({
+            semWaiting: 2
+        })
         axios.post('http://localhost:8080/api/move/to_' + url, {
             images: selected
         }).then(res => {
@@ -71,21 +88,57 @@ class App extends React.Component {
             url = 'prod'
         }
         if (selected.length === 0) alert('Choose image(s)');
-        axios.post('http://localhost:8080/api/remove/' + url, {
-            images: selected
-        }).then(res => {
-            this.getReposData()
+        this.setState({
+            semWaiting: 2
         })
-    }
 
-    changeTag(image, newTag) {
-
+        let proceed = 0
+        for (const image of selected) {
+            axios.post('http://localhost:8080/api/remove/' + url, {
+                image: image
+            }).then(res => {
+                const data = res.data
+                if (data.status === 'warning') {
+                    console.log(data)
+                    const duplicates = data.duplicates.join('\n')
+                    const force = window.confirm(
+                        'Внимание! \n' +
+                        'Удалив этот тег, вы также удалите его дупликаты:\n' +
+                        duplicates +
+                        '\n' +
+                        'Продолжить?'
+                    )
+                    if (force === true) {
+                        axios.post('http://localhost:8080/api/remove/' + url, {
+                            image: image,
+                            force: 1
+                        }).then(res => {
+                            if (++proceed === selected.length) this.getReposData()
+                        }).catch(err => {
+                            console.log(err)
+                            if (++proceed === selected.length) this.getReposData()
+                        })
+                    } else {
+                        if (++proceed === selected.length) this.getReposData()
+                    }
+                    return
+                }
+                if (++proceed === selected.length) this.getReposData()
+            }).catch(err => {
+                console.log(err)
+                if (++proceed === selected.length) this.getReposData()
+            })
+        }
     }
 
     render() {
-        const {devImages, prodImages, selectedDev, selectedProd} = this.state
+        const {devImages, prodImages, selectedDev, selectedProd, semWaiting} = this.state
+        console.log(semWaiting)
         return (
             <div className='App'>
+                { semWaiting > 0 && <div className='preloader'>
+                    <div className="lds-ring"><div></div><div></div><div></div><div></div></div>
+                </div> }
                 <div className='images-list'>
                     <ImagesList
                         images={devImages}
@@ -100,26 +153,26 @@ class App extends React.Component {
                     />
                 </div>
                 <div className='actions-list'>
-                    <div className='button-wrapper'>
+                    { selectedDev.length > 0 && <div className='button-wrapper'>
                         <Button
                             variant="contained"
                             color="primary"
                             onClick={()=>{this.moveImage()}}
                             endIcon={<ArrowForward />}
                         >
-                            Move to prod
+                            Копировать на prod
                         </Button>
-                    </div>
-                    <div className='button-wrapper'>
+                    </div>}
+                    { selectedProd.length > 0 && <div className='button-wrapper'>
                         <Button
                             variant="contained"
                             color="primary"
                             onClick={()=>{this.moveImage()}}
                             startIcon={<ArrowBack />}
                         >
-                            Move to dev
+                            Копировать на dev
                         </Button>
-                    </div>
+                    </div>}
                     <div className='button-wrapper'>
                         <Button
                             variant="contained"
@@ -127,7 +180,7 @@ class App extends React.Component {
                             onClick={()=>{this.removeImage()}}
                             endIcon={<Delete />}
                         >
-                            remove
+                            Удалить
                         </Button>
                     </div>
                 </div>
