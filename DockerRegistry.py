@@ -1,4 +1,5 @@
 import requests
+from log import log
 
 from schema import SCHEMA
 
@@ -8,7 +9,7 @@ class DockerRegistry:
     USERNAME = ''
     PASSWORD = ''
 
-    def __init__(self, address, username, password):
+    def __init__(self, address='', username='', password=''):
         self.ADDRESS = address
         self.USERNAME = username
         self.PASSWORD = password
@@ -24,7 +25,7 @@ class DockerRegistry:
 
     # ids of all images
     def images_list(self):
-        res = []
+        res = {}
         repositories = self.repositories_list()
 
         for repository in repositories:
@@ -32,9 +33,7 @@ class DockerRegistry:
             if tags is None:
                 continue
 
-            for tag in tags:
-                image = {'name': repository, 'tag': tag}
-                res.append(image)
+            res[repository] = tags
 
         return res
 
@@ -65,14 +64,16 @@ class DockerRegistry:
     def remove_image(self, repo, tag, force=False):
         image_id = self.get_image_id(repo, tag)
 
-        if not force:
-            duplicate_images = self.find_duplicates(repo, tag, image_id)
-            if duplicate_images.__len__() > 0:
-                return duplicate_images
+        duplicate_images = self.find_duplicates(repo, tag, image_id)
+
+        if not force and duplicate_images.__len__() > 0:
+            return duplicate_images
 
         if not image_id:
             return False
 
+        print(log('Docker registry ' + self.ADDRESS + ' remove image ' + repo + ':' + tag
+                  + ((' duplicates:' + ', '.join(duplicate_images)) if duplicate_images.__len__() > 0 else '')))
         requests.delete(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + image_id,
                         headers=self.headers)
         return True

@@ -1,4 +1,7 @@
+import requests
 import yaml
+
+from log import log
 from flask import Flask, jsonify, request, send_from_directory
 
 from DockerRegistry import DockerRegistry
@@ -9,20 +12,32 @@ with open("config.yml", 'r') as ymlfile:
 
 api = Flask(__name__)
 
-src_reg = DockerRegistry(cfg['src_registry']['ADDRESS'], cfg['src_registry']['USERNAME'],
-                         cfg['src_registry']['PASSWORD'])
-dst_reg = DockerRegistry(cfg['dst_registry']['ADDRESS'], cfg['dst_registry']['USERNAME'],
-                         cfg['dst_registry']['PASSWORD'])
 
-docker_cli = DockerClient()
-docker_cli.login(src_reg.ADDRESS, src_reg.USERNAME, src_reg.PASSWORD)
-docker_cli.login(dst_reg.ADDRESS, dst_reg.USERNAME, dst_reg.PASSWORD)
+def init_vars():
+    global src_reg, dst_reg, docker_cli
+    src_reg = DockerRegistry(cfg['src_registry']['ADDRESS'], cfg['src_registry']['USERNAME'],
+                             cfg['src_registry']['PASSWORD'])
+    dst_reg = DockerRegistry(cfg['dst_registry']['ADDRESS'], cfg['dst_registry']['USERNAME'],
+                             cfg['dst_registry']['PASSWORD'])
+
+    docker_cli = DockerClient()
+    docker_cli.login(src_reg.ADDRESS, src_reg.USERNAME, src_reg.PASSWORD)
+    docker_cli.login(dst_reg.ADDRESS, dst_reg.USERNAME, dst_reg.PASSWORD)
+
+
+src_reg = dst_reg = DockerRegistry()
+docker_cli = DockerClient
+
+try:
+    init_vars()
+except requests.exceptions.RequestException as e:
+    print('docker registry connection error', e)
 
 
 @api.route('/', defaults={'path': ''})
 @api.route('/<path:path>')
 def get_resource(path):
-    if not path:
+    if not path or path == 'settings':
         path = 'index.html'
     return send_from_directory('client/build', path)
 
@@ -74,8 +89,8 @@ def move(server):
 
 def move_image(pull_server, push_server, src_repo, src_tag):
     # скачиваем с дева по соурс тегу
-    pulled_image_name = docker_cli.pull_image(pull_server, src_repo, src_tag)
-    pulled_image = docker_cli.get_image(pulled_image_name)
+    pulled_image_id = docker_cli.pull_image(pull_server, src_repo, src_tag)
+    pulled_image = docker_cli.get_image(pulled_image_id)
 
     # меняем в теге урл на прод
     new_tag = src_tag
@@ -87,7 +102,8 @@ def move_image(pull_server, push_server, src_repo, src_tag):
     docker_cli.push_image(new_repo, new_tag)
 
     # удаляем локальный имейдж
-    docker_cli.remove_image(pulled_image_name)
+    docker_cli.remove_image(pulled_image_id)
+
 
 # удаление с любого из
 @api.route('/api/remove/<string:server>/', methods=['POST'])
@@ -121,16 +137,46 @@ def remove(server):
 
 def filter_tags(images):
     res = list()
-    for image in images:
+    for image_name, tags in images.items():
         for prefix in cfg['prefixes']:
-            if not image['tag'].startswith(prefix):
-                continue
-            res.append(image)
+            for tag in tags:
+                if not tag.startswith(prefix):
+                    continue
+                res.append({
+                    'name': image_name,
+                    'tag': tag
+                })
 
     return res
 
+
+@api.route('/api/get_settings', methods=['GET'])
+def get_settings():
+    global cfg
+    return jsonify(cfg)
+
+
+@api.route('/api/save_settings', methods=['POST'])
+def save_settings():
+    new_cfg = request.get_json()
+    global cfg
+
+    with open("config.yml", 'w+') as cfgfile:
+        yaml.dump(cfg, cfgfile)
+
+    print(log('configs changed, prev configs:'
+              + jsonify(cfg)
+              + ', new configs:'
+              + jsonify(new_cfg)))
+
+    cfg = new_cfg
+    init_vars()
+
+    return 'Ok'
+
+
 # метод синхронизации всех докер имеджей
-@api.route('/api/synchronize/')
+@api.route('/api/synchronize/', methods=['GET'])
 def synchronize():
     # получаем список имеджей слева
     src_images = src_reg.images_list()
@@ -141,7 +187,6 @@ def synchronize():
     dst_images = filter_tags(dst_images)
     # создаем список лишних на проде
     excess_images = [item for item in dst_images if item not in src_images]
-    print(excess_images)
     # проверяем включен ли флаг жесткой синхронизации
     force = False
     if 'force_sync' in cfg:
@@ -158,4 +203,6 @@ def synchronize():
 
     return 'OK'
 
-api.run(port=8080)
+
+if __name__ == "__main__":
+    api.run(port=8000)

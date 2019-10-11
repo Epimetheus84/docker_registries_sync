@@ -1,10 +1,11 @@
-src_registry:
-    ADDRESS: localhost:5000
-    USERNAME:
-    PASSWORD:
 dst_registry:
-    ADDRESS: localhost:5005
-    USERNAME:
-    PASSWORD:
+  ADDRESS: localhost:5005
+  PASSWORD: null
+  USERNAME: null
 force_sync: 1
-prefixes: ['']
+prefixes:
+- ''
+src_registry:
+  ADDRESS: localhost:5000
+  PASSWORD: null
+  USERNAME: null

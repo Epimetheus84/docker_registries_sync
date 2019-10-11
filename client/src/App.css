@@ -84,4 +84,27 @@ body {
     transform: rotate(360deg);
   }
 }
-
+.settings-btn {
+    position: absolute;
+    z-index: 0;
+    right: 15px;
+    top: 15px;
+}
+.settings-btn svg {
+    width: 40px;
+    height: 40px;
+    color: gray;
+}
+.settings-form {
+    width: 800px;
+    margin: 0 auto;
+}
+.settings-form h2 {
+    text-align: center;
+}
+.return-btn {
+    float: right;
+}
+.images-list .select-repo {
+    background: #f2f2f2;
+}
