@@ -15,23 +15,23 @@ api = Flask(__name__)
 
 def init_vars():
     global src_reg, dst_reg, docker_cli
-    src_reg = DockerRegistry(cfg['src_registry']['ADDRESS'], cfg['src_registry']['USERNAME'],
-                             cfg['src_registry']['PASSWORD'])
-    dst_reg = DockerRegistry(cfg['dst_registry']['ADDRESS'], cfg['dst_registry']['USERNAME'],
-                             cfg['dst_registry']['PASSWORD'])
+    try:
+        src_reg = DockerRegistry(cfg['src_registry']['ADDRESS'], cfg['src_registry']['USERNAME'],
+                                 cfg['src_registry']['PASSWORD'])
+        dst_reg = DockerRegistry(cfg['dst_registry']['ADDRESS'], cfg['dst_registry']['USERNAME'],
+                                 cfg['dst_registry']['PASSWORD'])
 
-    docker_cli = DockerClient()
-    docker_cli.login(src_reg.ADDRESS, src_reg.USERNAME, src_reg.PASSWORD)
-    docker_cli.login(dst_reg.ADDRESS, dst_reg.USERNAME, dst_reg.PASSWORD)
+        docker_cli = DockerClient()
+        docker_cli.login(src_reg.ADDRESS, src_reg.USERNAME, src_reg.PASSWORD)
+        docker_cli.login(dst_reg.ADDRESS, dst_reg.USERNAME, dst_reg.PASSWORD)
+    except requests.exceptions.RequestException as e:
+        print('docker registry connection error', e)
 
 
 src_reg = dst_reg = DockerRegistry()
 docker_cli = DockerClient
 
-try:
-    init_vars()
-except requests.exceptions.RequestException as e:
-    print('docker registry connection error', e)
+init_vars()
 
 
 @api.route('/', defaults={'path': ''})

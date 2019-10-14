@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
-service nginx start
-wrapdocker uwsgi --ini uwsgi.ini
+wrapdocker gunicorn -w 4 index:api --bind 0.0.0.0:80 --timeout 600

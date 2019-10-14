@@ -23,7 +23,7 @@ class Home extends React.Component {
     }
 
     getReposData() {
-        axios.get('http://localhost:8080/api/images/src').then(res => {
+        axios.get('/api/images/src').then(res => {
             const images = res.data
             this.setState({
                 srcImages: images,
@@ -36,7 +36,7 @@ class Home extends React.Component {
             })
         })
 
-        axios.get('http://localhost:8080/api/images/dst').then(res => {
+        axios.get('/api/images/dst').then(res => {
             const images = res.data
             this.setState({
                 dstImages: images,
@@ -73,10 +73,16 @@ class Home extends React.Component {
         this.setState({
             semWaiting: 2
         })
-        axios.post('http://localhost:8080/api/move/to_' + url, {
+        axios.post('/api/move/to_' + url, {
             images: selected
         }).then(res => {
             this.getReposData()
+        }).catch(err => {
+            console.log(err)
+            this.setState({
+                semWaiting: 0
+            })
+            alert('Error occurred during operation')
         })
     }
 
@@ -95,7 +101,7 @@ class Home extends React.Component {
 
         let proceed = 0
         for (const image of selected) {
-            axios.post('http://localhost:8080/api/remove/' + url, {
+            axios.post('/api/remove/' + url, {
                 image: image
             }).then(res => {
                 const data = res.data
@@ -110,7 +116,7 @@ class Home extends React.Component {
                         'Продолжить?'
                     )
                     if (force === true) {
-                        axios.post('http://localhost:8080/api/remove/' + url, {
+                        axios.post('/api/remove/' + url, {
                             image: image,
                             force: 1
                         }).then(res => {
@@ -134,7 +140,6 @@ class Home extends React.Component {
 
     render() {
         const {srcImages, dstImages, selectedDev, selectedProd, semWaiting} = this.state
-        console.log(semWaiting)
         return (
             <div className='App'>
                 { semWaiting > 0 && <div className='preloader'>

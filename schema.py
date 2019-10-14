@@ -1,1 +1,1 @@
-SCHEMA = 'http://'
+SCHEMA = 'https://'

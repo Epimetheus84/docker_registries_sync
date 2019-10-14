@@ -17,11 +17,11 @@ class DockerRegistry:
 
     def repositories_list(self):
         response = requests.get(SCHEMA + self.ADDRESS + '/v2/_catalog', headers=self.headers)
-        return response.json()['repositories']
+        return response.json()['repositories'] if 'repositories' in response.json() else []
 
     def repository_tags(self, repo):
         response = requests.get(SCHEMA + self.ADDRESS + '/v2/' + repo + '/tags/list', headers=self.headers)
-        return response.json()['tags']
+        return response.json()['tags'] if 'tags' in response.json() else []
 
     # ids of all images
     def images_list(self):

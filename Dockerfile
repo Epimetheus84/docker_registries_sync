@@ -25,13 +25,20 @@ WORKDIR /srv/flask_app
 ADD ./wrapdocker /usr/local/bin/wrapdocker
 RUN chmod +x /usr/local/bin/wrapdocker
 
+##### certificates
+COPY certs/ca.crt /usr/local/share/ca-certificates/ca.crt
+
+RUN update-ca-certificates
+
+ENV REQUESTS_CA_BUNDLE=/certs/ca.crt
+#####
+
 VOLUME /var/lib/docker
 
-RUN cd client && npm i && npm run build
+RUN cd client && npm i && npm run build && rm -rf node_modules
 
 RUN pip install -r requirements.txt --src /usr/local/src
 
-COPY nginx.conf /etc/nginx
 RUN chmod +x ./start.sh
 CMD ["./start.sh"]
 
