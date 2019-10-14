@@ -1,5 +1,6 @@
 import requests
 import yaml
+import json
 
 from log import log
 from flask import Flask, jsonify, request, send_from_directory
@@ -152,7 +153,6 @@ def filter_tags(images):
 
 @api.route('/api/get_settings', methods=['GET'])
 def get_settings():
-    global cfg
     return jsonify(cfg)
 
 
@@ -162,12 +162,12 @@ def save_settings():
     global cfg
 
     with open("config.yml", 'w+') as cfgfile:
-        yaml.dump(cfg, cfgfile)
+        yaml.dump(new_cfg, cfgfile)
 
     print(log('configs changed, prev configs:'
-              + jsonify(cfg)
+              + json.dumps(cfg)
               + ', new configs:'
-              + jsonify(new_cfg)))
+              + json.dumps(new_cfg)))
 
     cfg = new_cfg
     init_vars()

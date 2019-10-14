@@ -36,7 +36,7 @@ COPY certs/ca.crt /usr/local/share/ca-certificates/ca.crt
 
 RUN update-ca-certificates
 
-ENV REQUESTS_CA_BUNDLE=/certs/ca.crt
+ENV REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/ca.crt
 #####
 
 RUN chmod +x ./start.sh
