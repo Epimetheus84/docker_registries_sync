@@ -1,9 +1,11 @@
-FROM python:3.6-slim
+FROM ubuntu:18.04
+
+ENV LANG C.UTF-8
 
 # thanks to https://hub.docker.com/r/jpetazzo/dind/dockerfile
 RUN apt-get clean && apt-get update -qq && apt-get install -qqy \
-    nginx \
-    python3-dev \
+    python3 \
+    python3-pip \
     build-essential \
     apt-transport-https \
     ca-certificates \
@@ -11,11 +13,6 @@ RUN apt-get clean && apt-get update -qq && apt-get install -qqy \
     lxc \
     iptables \
     && rm -rf /var/lib/apt/lists/*
-
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash  \
-    && apt-get update
-
-RUN apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
 
 RUN curl -sSL https://get.docker.com/ | sh
 
@@ -27,9 +24,7 @@ RUN chmod +x /usr/local/bin/wrapdocker
 
 VOLUME /var/lib/docker
 
-RUN cd client && npm i && npm run build && rm -rf node_modules
-
-RUN pip install -r requirements.txt --src /usr/local/src
+RUN pip3 install -r requirements.txt --src /usr/local/src
 
 ##### certificates
 COPY certs/ca.crt /usr/local/share/ca-certificates/ca.crt
