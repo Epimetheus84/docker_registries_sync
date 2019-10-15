@@ -23,7 +23,7 @@ body {
 }
 .App .images-list .form-control select {
   background: #f2f2f2;
-  height: 800px;
+  height: 650px;
   padding: 5px;
 }
 .App .actions-list {
@@ -44,7 +44,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #00000030;
+    background: #00000020;
     z-index: 1;
 }
 .lds-ring {
@@ -107,4 +107,32 @@ body {
 }
 .images-list .select-repo {
     background: #f2f2f2;
+}
+.logs {
+    height: 150px;
+    width: calc(100% - 40px);
+    background: #f2f2f2;
+    bottom: 0;
+    position: relative;
+    border-top: 1px solid gray;
+    border-bottom: 0px;
+    margin: 0 20px;
+    float: left;
+    text-align: left;
+    padding: 5px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+.logs .time{
+    font-weight: bold;
+    width: 70px;
+    display: inline-block;
+}
+.logs .error {
+    color: #f50057;
+}
+option:hover {
+    cursor: pointer;
+    background: #51a9f0;
+    color: white;
 }

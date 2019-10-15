@@ -7,7 +7,6 @@ const ALL_REPOS = '*'
 
 class ImagesList extends React.Component {
     constructor(props) {
-        console.log(props)
         super(props)
         this.state = {
             filteredImages: props.images,

@@ -1,6 +1,5 @@
 import React from 'react'
 import axios from 'axios'
-import ImagesList from "./ImagesList"
 import Button from '@material-ui/core/Button'
 import Delete from '@material-ui/icons/Delete'
 import ArrowBack from '@material-ui/icons/ArrowBack'
@@ -8,6 +7,8 @@ import ArrowForward from '@material-ui/icons/ArrowForward'
 import SettingsApplications from '@material-ui/icons/SettingsApplications'
 import { Link } from "react-router-dom"
 
+import ImagesList from "./ImagesList"
+import Log from "./Log"
 
 class Home extends React.Component {
     constructor(props) {
@@ -17,9 +18,11 @@ class Home extends React.Component {
             dstImages: {},
             selectedDev: [],
             selectedProd: [],
+            logs: [],
             semWaiting: 2
         }
         this.getReposData()
+        this.log = this.log.bind(this)
     }
 
     getReposData() {
@@ -61,29 +64,36 @@ class Home extends React.Component {
         return value
     }
 
-    moveImage(image) {
+    moveImages(image) {
         const { selectedDev, selectedProd } = this.state
         let selected = selectedDev
         let url = 'dst'
+
         if (selectedProd.length > 0) {
             selected = selectedProd
             url = 'src'
         }
+
         if (selected.length === 0) alert('Choose image(s)');
+
         this.setState({
             semWaiting: 2
         })
-        axios.post('/api/move/to_' + url, {
-            images: selected
-        }).then(res => {
-            this.getReposData()
-        }).catch(err => {
-            console.log(err)
-            this.setState({
-                semWaiting: 0
+
+        let proceed = 0
+        for (const image of selected) {
+            this.log(image + ' - копируется на ' + url)
+            axios.post('/api/move/to_' + url, {
+                image: image
+            }).then(res => {
+                if (++proceed === selected.length) this.getReposData()
+                this.log(image + ' - скопирован на ' + url, 'success')
+            }).catch(err => {
+                console.log(err)
+                if (++proceed === selected.length) this.getReposData()
+                this.log(image + ' - ошибка во время копирования на ' + url, 'error')
             })
-            alert('Error occurred during operation')
-        })
+        }
     }
 
     removeImage() {
@@ -94,48 +104,79 @@ class Home extends React.Component {
             selected = selectedProd
             url = 'dst'
         }
-        if (selected.length === 0) alert('Choose image(s)');
+        if (selected.length === 0) {
+            alert('Choose image(s)')
+            return
+        }
+
+        if (!window.confirm('Вы уверены что хотите удалить эти теги?: \n' + selected.join(';\n'))) return
+
         this.setState({
             semWaiting: 2
         })
 
         let proceed = 0
-        for (const image of selected) {
-            axios.post('/api/remove/' + url, {
-                image: image
-            }).then(res => {
-                const data = res.data
-                if (data.status === 'warning') {
-                    console.log(data)
-                    const duplicates = data.duplicates.join('\n')
-                    const force = window.confirm(
-                        'Внимание! \n' +
-                        'Удалив этот тег, вы также удалите его дупликаты:\n' +
-                        duplicates +
-                        '\n' +
-                        'Продолжить?'
-                    )
-                    if (force === true) {
-                        axios.post('/api/remove/' + url, {
-                            image: image,
-                            force: 1
-                        }).then(res => {
-                            if (++proceed === selected.length) this.getReposData()
-                        }).catch(err => {
-                            console.log(err)
-                            if (++proceed === selected.length) this.getReposData()
-                        })
-                    } else {
-                        if (++proceed === selected.length) this.getReposData()
-                    }
-                    return
+
+        axios.post('/api/check_if_can_be_removed/' + url, {
+            images: selected
+        }).then(res => {
+            let confirmed = 1   
+            console.log(res.data)
+            if (res.data.length > 0) {
+                let duplicatesConfirmationString = 'Внимание! \n' +
+                    'Удалив следующие теги, вы также удалите их дупликаты.'
+
+                for (const image in res.data) {
+                    if (!res.data.hasOwnProperty(image) || Array.isArray(res.data)) continue
+                    const duplicates = res.data[image]
+                    duplicatesConfirmationString += '\n Для тега ' + image
+                    + ' дупликаты:\n'
+                    + duplicates.join('\n')
                 }
-                if (++proceed === selected.length) this.getReposData()
-            }).catch(err => {
-                console.log(err)
-                if (++proceed === selected.length) this.getReposData()
-            })
+
+                duplicatesConfirmationString += '\n Продолжить?'
+
+                confirmed = window.confirm(duplicatesConfirmationString)
+            }
+
+            if (!confirmed) {
+                this.getReposData()
+                return
+            }
+
+            for (const image of selected) {
+                this.log(image + ' - удаляется с реестра ' + url)
+                axios.post('/api/remove/' + url, {
+                    image: image
+                }).then(res => {
+                     this.log(image + ' - удален с реестра ' + url)
+                     if (++proceed === selected.length) this.getReposData()
+                }).catch(err => {
+                     console.log(err)
+                     this.log(image + ' - ошибка во время удаления с реестра ' + url)
+                     if (++proceed === selected.length) this.getReposData()
+                })
+            }
+        }).catch(err => {
+            console.log(err)
+            this.getReposData()
+        })
+    }
+
+    log(value, status = 'default') {
+        const currentDate = new Date()
+        const log = {
+            time: currentDate.getHours() + ':'
+                + currentDate.getMinutes() + ':'
+                + currentDate.getSeconds(),
+            value,
+            status
         }
+        let logs = this.state.logs
+        logs.unshift(log)
+        this.setState({
+            logs: logs
+        })
     }
 
     render() {
@@ -163,7 +204,7 @@ class Home extends React.Component {
                         <Button
                             variant="contained"
                             color="primary"
-                            onClick={()=>{this.moveImage()}}
+                            onClick={()=>{this.moveImages()}}
                             endIcon={<ArrowForward />}
                         >
                             Копировать на prod
@@ -173,7 +214,7 @@ class Home extends React.Component {
                         <Button
                             variant="contained"
                             color="primary"
-                            onClick={()=>{this.moveImage()}}
+                            onClick={()=>{this.moveImages()}}
                             startIcon={<ArrowBack />}
                         >
                             Копировать на dev
@@ -207,6 +248,9 @@ class Home extends React.Component {
                     <Link to="/settings">
                         <SettingsApplications />
                     </Link>
+                </div>
+                <div className="logs">
+                    <Log data={this.state.logs} />
                 </div>
             </div>
         );

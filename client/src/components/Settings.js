@@ -113,8 +113,26 @@ class Settings extends React.Component {
                 <FormGroup row>
                     <TextField
                         fullWidth
+                        id="repositories"
+                        label={ 'Необходимые репозитории через запятую' +
+                            '(оставьте поле пустым, если нужны все репозитории)' }
+                        value={
+                            configs.repositories.join(', ')
+                        }
+                        onChange={(e) => {
+                            let value = e.target.value
+                            value = value.split(', ')
+                            this.handleChange(value, 'repositories')
+                        }}
+                        margin="normal"
+                    />
+                </FormGroup>
+                <FormGroup row>
+                    <TextField
+                        fullWidth
                         id="prefixes"
-                        label="Префиксы тегов через запятую (оставьте поле пустым, если необходимо синхронизировать все теги)"
+                        label={ 'Префиксы тегов через запятую' +
+                            '(оставьте пустым, если нужны все теги)' }
                         value={
                             configs.prefixes.join(', ')
                         }

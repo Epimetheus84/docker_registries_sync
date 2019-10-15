@@ -61,19 +61,23 @@ class DockerRegistry:
 
         return duplicate_images
 
-    def remove_image(self, repo, tag, force=False):
+    def check_if_can_be_removed(self, repo, tag):
         image_id = self.get_image_id(repo, tag)
 
         duplicate_images = self.find_duplicates(repo, tag, image_id)
 
-        if not force and duplicate_images.__len__() > 0:
-            return duplicate_images
+        print(log('find duplicates for image ' + repo + ':' + tag +
+                  ' : ' + (', '.join(duplicate_images)) if duplicate_images.__len__() > 0 else 'no one'))
+
+        return duplicate_images
+
+    def remove_image(self, repo, tag):
+        image_id = self.get_image_id(repo, tag)
 
         if not image_id:
             return False
 
-        print(log('Docker registry ' + self.ADDRESS + ' remove image ' + repo + ':' + tag
-                  + ((' duplicates:' + ', '.join(duplicate_images)) if duplicate_images.__len__() > 0 else '')))
+        print(log('Docker registry ' + self.ADDRESS + ' remove image ' + repo + ':' + tag))
         requests.delete(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + image_id,
                         headers=self.headers)
         return True

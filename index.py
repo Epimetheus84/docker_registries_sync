@@ -72,7 +72,7 @@ def get_dst_images():
 @api.route('/api/move/to_<string:server>/', methods=['POST'])
 def move(server):
     req = request.get_json()
-    images = req['images']
+    image = req['image']
 
     pull_server = dst_reg.ADDRESS
     push_server = src_reg.ADDRESS
@@ -80,10 +80,9 @@ def move(server):
         pull_server = src_reg.ADDRESS
         push_server = dst_reg.ADDRESS
 
-    for src_image in images:
-        src_repo, src_tag = src_image.split(':')
+    src_repo, src_tag = image.split(':')
 
-        move_image(pull_server, push_server, src_repo, src_tag)
+    move_image(pull_server, push_server, src_repo, src_tag)
 
     return 'OK'
 
@@ -106,15 +105,38 @@ def move_image(pull_server, push_server, src_repo, src_tag):
     docker_cli.remove_image(pulled_image_id)
 
 
+@api.route('/api/check_if_can_be_removed/<string:server>', methods=['POST'])
+def check_if_can_be_removed(server):
+    req = request.get_json()
+
+    if 'images' not in req \
+            or req['images'].__len__() < 1:
+        return ''
+
+    docker_reg = src_reg
+    if server == 'dst':
+        docker_reg = dst_reg
+
+    response = {}
+    for image in req['images']:
+        src_repo, src_tag = image.split(':')
+        duplicates = docker_reg.check_if_can_be_removed(src_repo, src_tag)
+        if duplicates.__len__() < 1:
+            continue
+
+        response[image] = duplicates
+
+    return jsonify(response)
+
 # удаление с любого из
 @api.route('/api/remove/<string:server>/', methods=['POST'])
 def remove(server):
     req = request.get_json()
-    src_image = req['image']
 
-    force = False
-    if 'force' in req:
-        force = True
+    if 'image' not in req or not req['image']:
+        return ''
+
+    src_image = req['image']
 
     docker_reg = src_reg
     if server == 'dst':
@@ -126,11 +148,11 @@ def remove(server):
 
     src_repo, src_tag = src_image.split(':')
 
-    result = docker_reg.remove_image(src_repo, src_tag, force)
-    if type(result) is list:
+    result = docker_reg.remove_image(src_repo, src_tag)
+
+    if not result:
         response = {
-            'status': 'warning',
-            'duplicates': result
+            'status': 'error',
         }
 
     return jsonify(response)
@@ -139,6 +161,9 @@ def remove(server):
 def filter_tags(images):
     res = list()
     for image_name, tags in images.items():
+        if cfg['repositories'].__len__() > 0 \
+                and image_name not in cfg['repositories']:
+            continue
         for prefix in cfg['prefixes']:
             for tag in tags:
                 if not tag.startswith(prefix):
