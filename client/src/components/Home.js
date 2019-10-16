@@ -96,7 +96,8 @@ class Home extends React.Component {
         }
     }
 
-    removeImage() {
+    removeImages() {
+        console.log('asd')
         const { selectedDev, selectedProd } = this.state
         let selected = selectedDev
         let url = 'src'
@@ -120,21 +121,20 @@ class Home extends React.Component {
         axios.post('/api/check_if_can_be_removed/' + url, {
             images: selected
         }).then(res => {
-            let confirmed = 1   
-            console.log(res.data)
-            if (res.data.length > 0) {
+            let confirmed = 1
+            if (Object.keys(res.data).length > 0) {
                 let duplicatesConfirmationString = 'Внимание! \n' +
-                    'Удалив следующие теги, вы также удалите их дупликаты.'
+                    'Удалив следующие теги, вы также удалите и их дупликаты.'
 
                 for (const image in res.data) {
                     if (!res.data.hasOwnProperty(image) || Array.isArray(res.data)) continue
                     const duplicates = res.data[image]
-                    duplicatesConfirmationString += '\n Для тега ' + image
+                    duplicatesConfirmationString += '\nДля тега ' + image
                     + ' дупликаты:\n'
                     + duplicates.join('\n')
                 }
 
-                duplicatesConfirmationString += '\n Продолжить?'
+                duplicatesConfirmationString += '\nПродолжить?'
 
                 confirmed = window.confirm(duplicatesConfirmationString)
             }
@@ -224,7 +224,7 @@ class Home extends React.Component {
                         <Button
                             variant="contained"
                             color="secondary"
-                            onClick={()=>{this.removeImage()}}
+                            onClick={()=>{this.removeImages()}}
                             endIcon={<Delete />}
                         >
                             Удалить
