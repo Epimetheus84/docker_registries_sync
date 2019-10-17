@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import requests
 import yaml
 import json
@@ -162,6 +163,7 @@ def filter_tags(images):
     res = list()
     for image_name, tags in images.items():
         if cfg['repositories'].__len__() > 0 \
+                and cfg['repositories'][0] != '' \
                 and image_name not in cfg['repositories']:
             continue
         for prefix in cfg['prefixes']:
@@ -218,7 +220,7 @@ def synchronize():
         force = True
     # сносим лишние
     for excess_image in excess_images:
-        dst_reg.remove_image(excess_image['name'], excess_image['tag'], force)
+        dst_reg.remove_image(excess_image['name'], excess_image['tag'])
 
     # создаем список недостающих на проде
     missing_images = [item for item in src_images if item not in dst_images]
