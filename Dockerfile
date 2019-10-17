@@ -8,6 +8,7 @@ VOLUME /var/lib/docker
 
 # thanks to https://hub.docker.com/r/jpetazzo/dind/dockerfile
 RUN apk update \
+    && apk add tzdata \
     && apk add py-pip \
     && apk add bash \
     && apk add docker \
@@ -15,7 +16,7 @@ RUN apk update \
     && chmod +x /usr/local/bin/wrapdocker \
     && rm -rf /var/cache/apk/*
 
-##### certificates
+###### certificates
 COPY certs/ca.crt /usr/local/share/ca-certificates/ca.crt
 
 RUN update-ca-certificates
@@ -24,4 +25,7 @@ ENV REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/ca.crt
 #####
 
 RUN chmod +x ./start.sh
+
+ENV TZ=Asia/Almaty
+
 CMD ["./start.sh"]
