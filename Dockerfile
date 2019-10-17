@@ -6,8 +6,6 @@ WORKDIR /srv/flask_app
 ADD ./wrapdocker /usr/local/bin/wrapdocker
 VOLUME /var/lib/docker
 
-COPY ./sgerrand.rsa.pub /etc/apk/keys/sgerrand.rsa.pub
-
 # thanks to https://hub.docker.com/r/jpetazzo/dind/dockerfile
 RUN apk update \
     && apk add py-pip \
