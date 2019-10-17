@@ -19,8 +19,21 @@ class Home extends React.Component {
             selectedDev: [],
             selectedProd: [],
             logs: [],
-            semWaiting: 2
+            semWaiting: 2,
+            configs: {
+                src_registry: {
+                    ADDRESS: ''
+                },
+                dst_registry: {
+                    ADDRESS: ''
+                }
+            }
         }
+        axios.get('/api/get_settings').then(res => {
+            this.setState({
+                configs: res.data
+            })
+        })
         this.getReposData()
         this.log = this.log.bind(this)
     }
@@ -180,7 +193,7 @@ class Home extends React.Component {
     }
 
     render() {
-        const {srcImages, dstImages, selectedDev, selectedProd, semWaiting} = this.state
+        const {srcImages, dstImages, selectedDev, selectedProd, semWaiting, configs} = this.state
         return (
             <div className='App'>
                 { semWaiting > 0 && <div className='preloader'>
@@ -189,7 +202,7 @@ class Home extends React.Component {
                 <div className='images-list'>
                     <ImagesList
                         images={srcImages}
-                        title="src"
+                        title={'src ' + configs.src_registry.ADDRESS}
                         selected={selectedDev}
                         handleChange={(event) => {
                             this.setState({
@@ -207,7 +220,7 @@ class Home extends React.Component {
                             onClick={()=>{this.moveImages()}}
                             endIcon={<ArrowForward />}
                         >
-                            Копировать на prod
+                            Копировать на dst
                         </Button>
                     </div>}
                     { selectedProd.length > 0 && <div className='button-wrapper'>
@@ -217,7 +230,7 @@ class Home extends React.Component {
                             onClick={()=>{this.moveImages()}}
                             startIcon={<ArrowBack />}
                         >
-                            Копировать на dev
+                            Копировать на src
                         </Button>
                     </div>}
                     <div className='button-wrapper'>
@@ -234,7 +247,7 @@ class Home extends React.Component {
                 <div className='images-list'>
                     <ImagesList
                         images={dstImages}
-                        title="dst"
+                        title={'dst ' + configs.dst_registry.ADDRESS}
                         selected={selectedProd}
                         handleChange={(event) => {
                             this.setState({
