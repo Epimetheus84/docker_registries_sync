@@ -90,8 +90,8 @@ def move(server):
 
 def move_image(pull_server, push_server, src_repo, src_tag):
     # скачиваем с дева по соурс тегу
-    pulled_image_id = docker_cli.pull_image(pull_server, src_repo, src_tag)
-    pulled_image = docker_cli.get_image(pulled_image_id)
+    pulled_image_name = docker_cli.pull_image(pull_server, src_repo, src_tag)
+    pulled_image = docker_cli.get_image(pulled_image_name)
 
     # меняем в теге урл на прод
     new_tag = src_tag
@@ -103,7 +103,11 @@ def move_image(pull_server, push_server, src_repo, src_tag):
     docker_cli.push_image(new_repo, new_tag)
 
     # удаляем локальный имейдж
-    docker_cli.remove_image(pulled_image_id)
+    docker_cli.remove_image(pulled_image_name)
+
+    # удаляем имейдж с новым тегом
+    docker_cli.remove_image(new_repo + ':' + new_tag)
+
 
 
 @api.route('/api/check_if_can_be_removed/<string:server>', methods=['POST'])
@@ -189,7 +193,7 @@ def save_settings():
     global cfg
 
     with open("config.yml", 'w+') as cfgfile:
-        yaml.dump(new_cfg, cfgfile)
+        yaml.dump(new_cfg, cfgfile, allow_unicode=True, encoding='utf-8')
 
     print(log('configs changed, prev configs:'
               + json.dumps(cfg)
@@ -214,10 +218,6 @@ def synchronize():
     dst_images = filter_tags(dst_images)
     # создаем список лишних на проде
     excess_images = [item for item in dst_images if item not in src_images]
-    # проверяем включен ли флаг жесткой синхронизации
-    force = False
-    if 'force_sync' in cfg:
-        force = True
     # сносим лишние
     for excess_image in excess_images:
         dst_reg.remove_image(excess_image['name'], excess_image['tag'])

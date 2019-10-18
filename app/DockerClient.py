@@ -28,7 +28,7 @@ class DockerClient:
         print(log('Docker client remove image ' + image))
         return True
 
-    def pull_image(self, src, repo, tag):
+    def pull_image(self, src, repo, gtag):
         repo = src + '/' + repo
         self.client.images.pull(repository=repo, tag=tag)
         repo_tag = repo + ':' + tag
