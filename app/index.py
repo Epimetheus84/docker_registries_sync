@@ -193,7 +193,7 @@ def save_settings():
     global cfg
 
     with open("config.yml", 'w+') as cfgfile:
-        yaml.dump(new_cfg, cfgfile, allow_unicode=True, encoding='utf-8')
+        yaml.safe_dump(new_cfg, cfgfile, allow_unicode=True, encoding='utf-8')
 
     print(log('configs changed, prev configs:'
               + json.dumps(cfg)
