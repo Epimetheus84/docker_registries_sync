@@ -9,7 +9,7 @@ RUN apk update \
 
 COPY ./app /srv/flask_app
 COPY ./certs/ca.crt /usr/local/share/ca-certificates/ca.crt
-ADD ./wrapdocker /usr/local/bin/wrapdocker
+COPY ./wrapdocker /usr/local/bin/wrapdocker
 
 WORKDIR /srv/flask_app
 
