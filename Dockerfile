@@ -21,8 +21,6 @@ RUN update-ca-certificates
 ENV REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/ca.crt
 #####
 
-RUN chmod +x ./start.sh
-
 ENV TZ=Asia/Almaty
 
 LABEL Description="This image is used to synchronize docker registries" \

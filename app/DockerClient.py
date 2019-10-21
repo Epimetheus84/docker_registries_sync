@@ -3,7 +3,6 @@ from log import log
 
 from schema import SCHEMA
 
-
 class DockerClient:
     ADDRESS = 'unix://var/run/docker.sock'
 

@@ -10,6 +10,8 @@ import { Link } from "react-router-dom"
 import ImagesList from "./ImagesList"
 import Log from "./Log"
 
+const STATUS_AVAILABLE = 'available'
+
 class Home extends React.Component {
     constructor(props) {
         super(props)
@@ -34,8 +36,36 @@ class Home extends React.Component {
                 configs: res.data
             })
         })
-        this.getReposData()
         this.log = this.log.bind(this)
+        this.checkApiAvailability = this.checkApiAvailability.bind(this)
+        this.checkApiAvailability()
+    }
+
+    checkApiAvailability() {
+        const tm = 5 * 1000;
+        const prevLogs = this.state.logs
+        const check = () => {
+            axios.get('/api/are_you_busy')
+                .then(res => {
+                    res.data.logs.reverse()
+                    const logs = [
+                        ...res.data.logs,
+                        ...prevLogs
+                    ]
+                    if (res.data.status === STATUS_AVAILABLE) {
+                        this.getReposData()
+                    } else {
+                        setTimeout(check, tm)
+                    }
+                    this.setState({
+                        logs: logs
+                    })
+                })
+                .catch(err => {
+                    window.alert(err)
+                })
+        }
+        check()
     }
 
     getReposData() {
@@ -77,7 +107,7 @@ class Home extends React.Component {
         return value
     }
 
-    moveImages(image) {
+    moveImages() {
         const { selectedDev, selectedProd } = this.state
         let selected = selectedDev
         let url = 'dst'
@@ -93,24 +123,17 @@ class Home extends React.Component {
             semWaiting: 2
         })
 
-        let proceed = 0
-        for (const image of selected) {
-            this.log(image + ' - копируется на ' + url)
-            axios.post('/api/move/to_' + url, {
-                image: image
-            }).then(res => {
-                if (++proceed === selected.length) this.getReposData()
-                this.log(image + ' - скопирован на ' + url, 'success')
-            }).catch(err => {
-                console.log(err)
-                if (++proceed === selected.length) this.getReposData()
-                this.log(image + ' - ошибка во время копирования на ' + url, 'error')
-            })
-        }
+        axios.post('/api/move/to_' + url, {
+            images: selected
+        }).then(res => {
+            this.checkApiAvailability()
+        }).catch(err => {
+            console.log(err)
+            this.getReposData()
+        })
     }
 
     removeImages() {
-        console.log('asd')
         const { selectedDev, selectedProd } = this.state
         let selected = selectedDev
         let url = 'src'
@@ -157,19 +180,14 @@ class Home extends React.Component {
                 return
             }
 
-            for (const image of selected) {
-                this.log(image + ' - удаляется с реестра ' + url)
-                axios.post('/api/remove/' + url, {
-                    image: image
-                }).then(res => {
-                     this.log(image + ' - удален с реестра ' + url)
-                     if (++proceed === selected.length) this.getReposData()
-                }).catch(err => {
-                     console.log(err)
-                     this.log(image + ' - ошибка во время удаления с реестра ' + url)
-                     if (++proceed === selected.length) this.getReposData()
-                })
-            }
+            axios.post('/api/remove/' + url, {
+                 images: selected
+            }).then(res => {
+                 this.checkApiAvailability()
+            }).catch(err => {
+                 console.log(err)
+                 this.getReposData()
+            })
         }).catch(err => {
             console.log(err)
             this.getReposData()

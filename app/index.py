@@ -2,17 +2,28 @@
 import requests
 import yaml
 import json
+import os
+import datetime
 
 from log import log
 from flask import Flask, jsonify, request, send_from_directory
+from threading import Thread
 
 from DockerRegistry import DockerRegistry
 from DockerClient import DockerClient
 
-with open("config.yml", 'r') as ymlfile:
+with open("./configs/config.yml", 'r') as ymlfile:
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
 api = Flask(__name__)
+
+LOC_FILE = 'process.json'
+STATUS_AVAILABLE = 'available'
+
+data = {'status': 'available', 'logs': []}
+with open(LOC_FILE, 'w') as locfile:
+    json.dump(data, locfile)
+    locfile.close()
 
 
 def init_vars():
@@ -28,6 +39,30 @@ def init_vars():
         docker_cli.login(dst_reg.ADDRESS, dst_reg.USERNAME, dst_reg.PASSWORD)
     except requests.exceptions.RequestException as e:
         print('docker registry connection error', e)
+
+
+def add_to_loc(action, status='default'):
+    if os.path.exists(LOC_FILE):
+        with open(LOC_FILE, 'r') as locfile:
+            data = json.load(locfile)
+            locfile.close()
+
+    if data['status'] == STATUS_AVAILABLE:
+        data = {'status': 'blocked', 'logs': []}
+
+    now = datetime.datetime.now()
+    time = str(now.strftime("%H:%M:%S"))
+    print(data)
+
+    data['logs'].append({
+        'time': time,
+        'status': status,
+        'value': action
+    })
+
+    with open(LOC_FILE, 'w') as locfile:
+        json.dump(data, locfile)
+        locfile.close()
 
 
 src_reg = dst_reg = DockerRegistry()
@@ -72,20 +107,32 @@ def get_dst_images():
 # перенос с одного сервера на другой
 @api.route('/api/move/to_<string:server>/', methods=['POST'])
 def move(server):
-    req = request.get_json()
-    image = req['image']
+    if is_busy():
+        return 'im busy'
 
+    req = request.get_json()
+    images = req['images']
+
+    bg_thread = Thread(target=move_images, args=(images, server))
+    bg_thread.start()
+
+    return 'OK'
+
+
+def move_images(images, server='src'):
     pull_server = dst_reg.ADDRESS
     push_server = src_reg.ADDRESS
     if server == 'dst':
         pull_server = src_reg.ADDRESS
         push_server = dst_reg.ADDRESS
 
-    src_repo, src_tag = image.split(':')
+    for image in images:
+        src_repo, src_tag = image.split(':')
+        add_to_loc(image + ' will be moved from ' + pull_server + ' to ' + push_server)
+        move_image(pull_server, push_server, src_repo, src_tag)
+        add_to_loc(image + ' has been moved from ' + pull_server + ' to ' + push_server)
 
-    move_image(pull_server, push_server, src_repo, src_tag)
-
-    return 'OK'
+    finish_process()
 
 
 def move_image(pull_server, push_server, src_repo, src_tag):
@@ -136,31 +183,40 @@ def check_if_can_be_removed(server):
 # удаление с любого из
 @api.route('/api/remove/<string:server>/', methods=['POST'])
 def remove(server):
+    if is_busy():
+        return 'im busy'
+
     req = request.get_json()
 
-    if 'image' not in req or not req['image']:
+    if 'images' not in req or not req['images']:
         return ''
 
-    src_image = req['image']
-
-    docker_reg = src_reg
-    if server == 'dst':
-        docker_reg = dst_reg
+    images = req['images']
+    bg_thread = Thread(target=remove_images, args=(images, server))
+    bg_thread.start()
 
     response = {
         'status': 'ok'
     }
 
-    src_repo, src_tag = src_image.split(':')
-
-    result = docker_reg.remove_image(src_repo, src_tag)
-
-    if not result:
-        response = {
-            'status': 'error',
-        }
-
     return jsonify(response)
+
+
+def remove_images(images, server):
+    docker_reg = src_reg
+    if server == 'dst':
+        docker_reg = dst_reg
+
+    for src_image in images:
+        add_to_loc(src_image + ' will be removed from ' + docker_reg.ADDRESS)
+        src_repo, src_tag = src_image.split(':')
+        result = docker_reg.remove_image(src_repo, src_tag)
+        if not result:
+            add_to_loc(src_image + ' error during removing from ' + docker_reg.ADDRESS, 'error')
+        else:
+            add_to_loc(src_image + ' has been removing from ' + docker_reg.ADDRESS)
+
+    finish_process()
 
 
 def filter_tags(images):
@@ -206,10 +262,34 @@ def save_settings():
     return 'Ok'
 
 
+def is_busy():
+    if not os.path.exists(LOC_FILE):
+        return False
+
+    with open(LOC_FILE, 'r') as locfile:
+        data = json.load(locfile)
+        locfile.close()
+
+    if data['status'] == STATUS_AVAILABLE:
+        return False
+
+    return True
+
+
 # метод синхронизации всех докер имеджей
 @api.route('/api/synchronize/', methods=['GET'])
-def synchronize():
+def start_synchronize():
+    if is_busy():
+        return 'im busy'
+
     print(log('synchronization started'))
+    bg_thread = Thread(target=synchronize, args=())
+    bg_thread.start()
+
+    return 'OK'
+
+
+def synchronize():
     # получаем список имеджей слева
     src_images = src_reg.images_list()
     # получаем список имеджей справа
@@ -221,15 +301,45 @@ def synchronize():
     excess_images = [item for item in dst_images if item not in src_images]
     # сносим лишние
     for excess_image in excess_images:
-        dst_reg.remove_image(excess_image['name'], excess_image['tag'])
+        src_image = excess_image['name'] + ':' + excess_image['tag']
+        add_to_loc(src_image + ' error during removing from ' + src_reg.ADDRESS, 'error')
+        result = dst_reg.remove_image(excess_image['name'], excess_image['tag'])
+        if not result:
+            add_to_loc(src_image + ' error during removing from ' + src_reg.ADDRESS, 'error')
+        else:
+            add_to_loc(src_image + ' has been removing from ' + src_reg.ADDRESS)
 
     # создаем список недостающих на проде
     missing_images = [item for item in src_images if item not in dst_images]
     # переносим недостающие
     for missing_image in missing_images:
+        src_image = missing_image['name'] + ':' + missing_image['tag']
+        add_to_loc(src_image + ' will be moved from ' + src_reg.ADDRESS + ' to ' + dst_reg.ADDRESS)
         move_image(src_reg.ADDRESS, dst_reg.ADDRESS, missing_image['name'], missing_image['tag'])
+        add_to_loc(src_image + ' has been moved from ' + src_reg.ADDRESS + ' to ' +  dst_reg.ADDRESS)
 
-    return 'OK'
+    finish_process()
+
+
+@api.route('/api/are_you_busy', methods=['GET'])
+def are_you_busy():
+    with open(LOC_FILE, 'r') as locfile:
+        data = json.load(locfile)
+        locfile.close()
+
+    return jsonify(data)
+
+
+def finish_process():
+    with open(LOC_FILE, 'r') as locfile:
+        data = json.load(locfile)
+        locfile.close()
+
+    data['status'] = STATUS_AVAILABLE
+
+    with open(LOC_FILE, 'w') as locfile:
+        json.dump(data, locfile)
+        locfile.close()
 
 
 if __name__ == "__main__":
