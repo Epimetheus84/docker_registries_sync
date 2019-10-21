@@ -22,10 +22,11 @@ ENV REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/ca.crt
 #####
 
 ENV TZ=Asia/Almaty
+ENV TIMEOUT=700
 
 LABEL Description="This image is used to synchronize docker registries" \
         Vendor="Novelty" \
-        Version="1.0" \
+        Version="1.3" \
         maintainer="eduard@novelty.kz"
 
 CMD ["./start.sh"]
