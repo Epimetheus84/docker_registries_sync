@@ -36,7 +36,7 @@ class DockerClient:
         return repo_tag
 
     def push_image(self, repo, tag):
-        output = self.client.images.push(repository=repo, tag=tag)
-        print(log('Docker client push image ' + repo + ':' + tag + ' Output: ' + output))
+        self.client.images.push(repository=repo, tag=tag)
+        print(log('Docker client push image ' + repo + ':' + tag))
 
         return True

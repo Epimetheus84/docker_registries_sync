@@ -109,7 +109,6 @@ def move_image(pull_server, push_server, src_repo, src_tag):
     docker_cli.remove_image(new_repo + ':' + new_tag)
 
 
-
 @api.route('/api/check_if_can_be_removed/<string:server>', methods=['POST'])
 def check_if_can_be_removed(server):
     req = request.get_json()
@@ -132,6 +131,7 @@ def check_if_can_be_removed(server):
         response[image] = duplicates
 
     return jsonify(response)
+
 
 # удаление с любого из
 @api.route('/api/remove/<string:server>/', methods=['POST'])
@@ -209,6 +209,7 @@ def save_settings():
 # метод синхронизации всех докер имеджей
 @api.route('/api/synchronize/', methods=['GET'])
 def synchronize():
+    print(log('synchronization started'))
     # получаем список имеджей слева
     src_images = src_reg.images_list()
     # получаем список имеджей справа

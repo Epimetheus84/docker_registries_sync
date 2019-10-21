@@ -74,11 +74,11 @@ class DockerRegistry:
 
     def remove_image(self, repo, tag):
         image_id = self.get_image_id(repo, tag)
-
+        print(log('Docker registry ' + self.ADDRESS + ' remove image ' + repo + ':' + tag))
+        
         if not image_id:
             return False
 
-        print(log('Docker registry ' + self.ADDRESS + ' remove image ' + repo + ':' + tag))
         requests.delete(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + image_id,
                         headers=self.headers)
         return True
