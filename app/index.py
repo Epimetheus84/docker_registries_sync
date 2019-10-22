@@ -142,6 +142,11 @@ def move_image(pull_server, push_server, src_repo, src_tag):
                ' pulled from ' + pull_server)
     pulled_image = docker_cli.get_image(pulled_image_name)
 
+    if not pulled_image:
+        add_to_loc(src_repo + ':' + src_tag +
+                   ' cannot be removed from ' + pull_server)
+        return
+
     # меняем в теге урл на прод
     new_tag = src_tag
     new_repo = push_server + '/' + src_repo
@@ -224,7 +229,7 @@ def remove_images(images, server):
         if not result:
             add_to_loc(src_image + ' error during removing from ' + docker_reg.ADDRESS, 'error')
         else:
-            add_to_loc(src_image + ' has been removing from ' + docker_reg.ADDRESS)
+            add_to_loc(src_image + ' has been removed from ' + docker_reg.ADDRESS)
 
     finish_process()
 
@@ -312,12 +317,12 @@ def synchronize():
     # сносим лишние
     for excess_image in excess_images:
         src_image = excess_image['name'] + ':' + excess_image['tag']
-        add_to_loc(src_image + ' error during removing from ' + src_reg.ADDRESS, 'error')
+        add_to_loc(src_image + ' will be removed from ' + src_reg.ADDRESS)
         result = dst_reg.remove_image(excess_image['name'], excess_image['tag'])
         if not result:
             add_to_loc(src_image + ' error during removing from ' + src_reg.ADDRESS, 'error')
         else:
-            add_to_loc(src_image + ' has been removing from ' + src_reg.ADDRESS)
+            add_to_loc(src_image + ' has been removed from ' + src_reg.ADDRESS)
 
     # создаем список недостающих на проде
     missing_images = [item for item in src_images if item not in dst_images]
@@ -326,7 +331,7 @@ def synchronize():
         src_image = missing_image['name'] + ':' + missing_image['tag']
         add_to_loc(src_image + ' will be moved from ' + src_reg.ADDRESS + ' to ' + dst_reg.ADDRESS)
         move_image(src_reg.ADDRESS, dst_reg.ADDRESS, missing_image['name'], missing_image['tag'])
-        add_to_loc(src_image + ' has been moved from ' + src_reg.ADDRESS + ' to ' +  dst_reg.ADDRESS)
+        add_to_loc(src_image + ' has been moved from ' + src_reg.ADDRESS + ' to ' + dst_reg.ADDRESS)
 
     finish_process()
 

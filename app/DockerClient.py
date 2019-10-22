@@ -21,14 +21,19 @@ class DockerClient:
         return images_list
 
     def get_image(self, image_id):
-        image = self.client.images.get(image_id)
+        try:
+            image = self.client.images.get(image_id)
+        except docker.errors.ImageNotFound as e:
+            print(e, 'check image validity')
+            return False
+
         return image
 
     def remove_image(self, image):
         try:
             self.client.images.remove(image)
         except requests.exceptions.ReadTimeout:
-            print('Read timout error image: ' + image)
+            print('Read timout error image: ' + image, 'check image validity')
 
         print(log('Docker client remove image ' + image))
         return True
@@ -38,8 +43,8 @@ class DockerClient:
 
         try:
             self.client.images.pull(repository=repo, tag=tag)
-        except docker.errors.APIError as e:
-            print(e)
+        except (docker.errors.ImageNotFound, docker.errors.NotFound) as e:
+            print(e, 'check image validity')
 
         repo_tag = repo + ':' + tag
         print(log('Docker client pull image ' + repo_tag))
