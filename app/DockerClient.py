@@ -1,7 +1,9 @@
 import docker
+import requests
 from log import log
 
 from schema import SCHEMA
+
 
 class DockerClient:
     ADDRESS = 'unix://var/run/docker.sock'
@@ -23,13 +25,22 @@ class DockerClient:
         return image
 
     def remove_image(self, image):
-        self.client.images.remove(image)
+        try:
+            self.client.images.remove(image)
+        except requests.exceptions.ReadTimeout:
+            print('Read timout error image: ' + image)
+
         print(log('Docker client remove image ' + image))
         return True
 
     def pull_image(self, src, repo, tag):
         repo = src + '/' + repo
-        self.client.images.pull(repository=repo, tag=tag)
+
+        try:
+            self.client.images.pull(repository=repo, tag=tag)
+        except docker.errors.APIError as e:
+            print(e)
+
         repo_tag = repo + ':' + tag
         print(log('Docker client pull image ' + repo_tag))
         return repo_tag

@@ -55,8 +55,11 @@ class Home extends React.Component {
                     if (res.data.status === STATUS_AVAILABLE) {
                         this.getReposData()
                     } else {
-                        setTimeout(check, tm)
+                        this.setState({
+                            semWaiting: 2
+                        })
                     }
+                    setTimeout(check, tm)
                     this.setState({
                         logs: logs
                     })

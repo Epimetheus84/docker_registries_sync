@@ -12,7 +12,7 @@ from threading import Thread
 from DockerRegistry import DockerRegistry
 from DockerClient import DockerClient
 
-with open("./configs/config.yml", 'r') as ymlfile:
+with open("config.yml", 'r') as ymlfile:
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
 api = Flask(__name__)
@@ -138,6 +138,8 @@ def move_images(images, server='src'):
 def move_image(pull_server, push_server, src_repo, src_tag):
     # скачиваем с дева по соурс тегу
     pulled_image_name = docker_cli.pull_image(pull_server, src_repo, src_tag)
+    add_to_loc(src_repo + ':' + src_tag +
+               ' pulled from ' + pull_server)
     pulled_image = docker_cli.get_image(pulled_image_name)
 
     # меняем в теге урл на прод
@@ -145,15 +147,23 @@ def move_image(pull_server, push_server, src_repo, src_tag):
     new_repo = push_server + '/' + src_repo
 
     pulled_image.tag(repository=new_repo, tag=new_tag)
+    add_to_loc(src_repo + ':' + src_tag +
+               ' get new tag ' + new_repo + ':' + new_tag)
 
     # пушим на проду
     docker_cli.push_image(new_repo, new_tag)
+    add_to_loc(new_repo + ':' + new_tag +
+               ' pushed to ' + push_server)
 
     # удаляем локальный имейдж
     docker_cli.remove_image(pulled_image_name)
+    add_to_loc('local image ' + src_repo + ':' + src_tag +
+               ' has been removed ')
 
     # удаляем имейдж с новым тегом
     docker_cli.remove_image(new_repo + ':' + new_tag)
+    add_to_loc('local image ' + new_repo + ':' + new_tag +
+               ' has been removed ')
 
 
 @api.route('/api/check_if_can_be_removed/<string:server>', methods=['POST'])
