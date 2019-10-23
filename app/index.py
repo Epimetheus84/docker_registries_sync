@@ -12,8 +12,8 @@ from threading import Thread
 from DockerRegistry import DockerRegistry
 from DockerClient import DockerClient
 
-with open("config.yml", 'r') as ymlfile:
-    cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+ymlfile = open("config.yml", 'r')
+cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
 api = Flask(__name__)
 
@@ -21,9 +21,9 @@ LOC_FILE = 'process.json'
 STATUS_AVAILABLE = 'available'
 
 data = {'status': 'available', 'logs': []}
-with open(LOC_FILE, 'w') as locfile:
-    json.dump(data, locfile)
-    locfile.close()
+locfile = open(LOC_FILE, 'w')
+json.dump(data, locfile)
+locfile.close()
 
 
 def init_vars():
@@ -43,9 +43,9 @@ def init_vars():
 
 def add_to_loc(action, status='default'):
     if os.path.exists(LOC_FILE):
-        with open(LOC_FILE, 'r') as locfile:
-            data = json.load(locfile)
-            locfile.close()
+        locfile = open(LOC_FILE, 'r')
+        data = json.load(locfile)
+        locfile.close()
 
     if data['status'] == STATUS_AVAILABLE:
         data = {'status': 'blocked', 'logs': []}
@@ -60,9 +60,9 @@ def add_to_loc(action, status='default'):
         'value': action
     })
 
-    with open(LOC_FILE, 'w') as locfile:
-        json.dump(data, locfile)
-        locfile.close()
+    locfile = open(LOC_FILE, 'w')
+    json.dump(data, locfile)
+    locfile.close()
 
 
 src_reg = dst_reg = DockerRegistry()
@@ -260,11 +260,11 @@ def get_settings():
 
 @api.route('/api/save_settings', methods=['POST'])
 def save_settings():
-    new_cfg = request.get_json()
     global cfg
+    new_cfg = request.get_json()
 
-    with open("config.yml", 'w+') as cfgfile:
-        yaml.safe_dump(new_cfg, cfgfile, allow_unicode=True, encoding='utf-8')
+    cfgfile = open("config.yml", 'w+')
+    yaml.safe_dump(new_cfg, cfgfile, allow_unicode=True, encoding='utf-8')
 
     print(log('configs changed, prev configs:'
               + json.dumps(cfg)
@@ -281,9 +281,9 @@ def is_busy():
     if not os.path.exists(LOC_FILE):
         return False
 
-    with open(LOC_FILE, 'r') as locfile:
-        data = json.load(locfile)
-        locfile.close()
+    locfile = open(LOC_FILE, 'r')
+    data = json.load(locfile)
+    locfile.close()
 
     if data['status'] == STATUS_AVAILABLE:
         return False
@@ -338,23 +338,23 @@ def synchronize():
 
 @api.route('/api/are_you_busy', methods=['GET'])
 def are_you_busy():
-    with open(LOC_FILE, 'r') as locfile:
-        data = json.load(locfile)
-        locfile.close()
+    locfile = open(LOC_FILE, 'r')
+    data = json.load(locfile)
+    locfile.close()
 
     return jsonify(data)
 
 
 def finish_process():
-    with open(LOC_FILE, 'r') as locfile:
-        data = json.load(locfile)
-        locfile.close()
+    locfile = open(LOC_FILE, 'r')
+    data = json.load(locfile)
+    locfile.close()
 
     data['status'] = STATUS_AVAILABLE
 
-    with open(LOC_FILE, 'w') as locfile:
-        json.dump(data, locfile)
-        locfile.close()
+    locfile = open(LOC_FILE, 'w')
+    json.dump(data, locfile)
+    locfile.close()
 
 
 if __name__ == "__main__":
