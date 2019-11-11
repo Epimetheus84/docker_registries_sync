@@ -8,6 +8,8 @@ import FormControlLabel from '@material-ui/core/FormControlLabel'
 import ArrowBack from '@material-ui/icons/ArrowBack'
 import { Link } from "react-router-dom"
 
+const VERSION = 1.8
+
 class Settings extends React.Component {
     constructor(props) {
         super(props)
@@ -20,6 +22,10 @@ class Settings extends React.Component {
                 configs: res.data
             })
         })
+    }
+
+    componentDidMount() {
+        document.title = 'Registry-MGR'
     }
 
     handleChange(value, key, subkey) {
@@ -175,6 +181,8 @@ class Settings extends React.Component {
                         Вернуться
                     </Button>
                 </Link>
+                <br/>
+                <span className="version">Version: { VERSION }</span>
             </form>
         )
     }

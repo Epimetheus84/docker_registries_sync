@@ -12,22 +12,27 @@ from threading import Thread
 from DockerRegistry import DockerRegistry
 from DockerClient import DockerClient
 
-ymlfile = open("config.yml", 'r')
-cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
-
-api = Flask(__name__)
-
-LOC_FILE = 'process.json'
 STATUS_AVAILABLE = 'available'
+api = Flask(__name__)
+LOC_FILE = 'process.json'
+src_reg = dst_reg = docker_cli = None
 
-data = {'status': 'available', 'logs': []}
-locfile = open(LOC_FILE, 'w')
-json.dump(data, locfile)
-locfile.close()
+
+def main():
+    global src_reg, dst_reg, docker_cli
+    data = {'status': 'available', 'logs': []}
+    locfile = open(LOC_FILE, 'w')
+    json.dump(data, locfile)
+    locfile.close()
+    src_reg = dst_reg = DockerRegistry()
+    docker_cli = DockerClient
+    init_vars()
 
 
 def init_vars():
     global src_reg, dst_reg, docker_cli
+    ymlfile = open("config.yml", 'r')
+    cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     try:
         src_reg = DockerRegistry(cfg['src_registry']['ADDRESS'], cfg['src_registry']['USERNAME'],
                                  cfg['src_registry']['PASSWORD'])
@@ -65,12 +70,6 @@ def add_to_loc(action, status='default'):
     locfile.close()
 
 
-src_reg = dst_reg = DockerRegistry()
-docker_cli = DockerClient
-
-init_vars()
-
-
 @api.route('/', defaults={'path': ''})
 @api.route('/<path:path>')
 def get_resource(path):
@@ -93,6 +92,7 @@ def send_css(path):
 # список имеджей на деве
 @api.route('/api/images/src', methods=['GET'])
 def get_src_images():
+    global src_reg
     images = src_reg.images_list()
     return jsonify(images)
 
@@ -100,6 +100,7 @@ def get_src_images():
 # список имеджей на проде
 @api.route('/api/images/dst', methods=['GET'])
 def get_dst_images():
+    global dst_reg
     images = dst_reg.images_list()
     return jsonify(images)
 
@@ -120,6 +121,7 @@ def move(server):
 
 
 def move_images(images, server='src'):
+    global src_reg, dst_reg
     pull_server = dst_reg.ADDRESS
     push_server = src_reg.ADDRESS
     if server == 'dst':
@@ -128,9 +130,9 @@ def move_images(images, server='src'):
 
     for image in images:
         src_repo, src_tag = image.split(':')
-        add_to_loc(image + ' will be moved from ' + pull_server + ' to ' + push_server)
+        add_to_loc(image + ' will be copied from ' + pull_server + ' to ' + push_server)
         move_image(pull_server, push_server, src_repo, src_tag)
-        add_to_loc(image + ' has been moved from ' + pull_server + ' to ' + push_server)
+        add_to_loc(image + ' has been copied from ' + pull_server + ' to ' + push_server)
 
     finish_process()
 
@@ -236,6 +238,8 @@ def remove_images(images, server):
 
 def filter_tags(images):
     res = list()
+    ymlfile = open("config.yml", 'r')
+    cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     for image_name, tags in images.items():
         if cfg['repositories'].__len__() > 0 \
                 and cfg['repositories'][0] != '' \
@@ -255,12 +259,15 @@ def filter_tags(images):
 
 @api.route('/api/get_settings', methods=['GET'])
 def get_settings():
+    ymlfile = open("config.yml", 'r')
+    cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     return jsonify(cfg)
 
 
 @api.route('/api/save_settings', methods=['POST'])
 def save_settings():
-    global cfg
+    ymlfile = open("config.yml", 'r')
+    cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     new_cfg = request.get_json()
 
     cfgfile = open("config.yml", 'w+')
@@ -271,7 +278,6 @@ def save_settings():
               + ', new configs:'
               + json.dumps(new_cfg)))
 
-    cfg = new_cfg
     init_vars()
 
     return 'Ok'
@@ -329,10 +335,11 @@ def synchronize():
     # переносим недостающие
     for missing_image in missing_images:
         src_image = missing_image['name'] + ':' + missing_image['tag']
-        add_to_loc(src_image + ' will be moved from ' + src_reg.ADDRESS + ' to ' + dst_reg.ADDRESS)
+        add_to_loc(src_image + ' will be copied from ' + src_reg.ADDRESS + ' to ' + dst_reg.ADDRESS)
         move_image(src_reg.ADDRESS, dst_reg.ADDRESS, missing_image['name'], missing_image['tag'])
-        add_to_loc(src_image + ' has been moved from ' + src_reg.ADDRESS + ' to ' + dst_reg.ADDRESS)
+        add_to_loc(src_image + ' has been copied from ' + src_reg.ADDRESS + ' to ' + dst_reg.ADDRESS)
 
+    print(log('synchronization ended'))
     finish_process()
 
 
@@ -358,4 +365,6 @@ def finish_process():
 
 
 if __name__ == "__main__":
+    main()
     api.run(port=8000)
+

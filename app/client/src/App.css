@@ -136,3 +136,8 @@ option:hover {
     background: #51a9f0;
     color: white;
 }
+.version {
+    color: gray;
+    float: right;
+    font-size: 14px;
+}

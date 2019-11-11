@@ -4,6 +4,7 @@ import Button from '@material-ui/core/Button'
 import Delete from '@material-ui/icons/Delete'
 import ArrowBack from '@material-ui/icons/ArrowBack'
 import ArrowForward from '@material-ui/icons/ArrowForward'
+import Autorenew from '@material-ui/icons/Autorenew'
 import SettingsApplications from '@material-ui/icons/SettingsApplications'
 import { Link } from "react-router-dom"
 
@@ -41,17 +42,17 @@ class Home extends React.Component {
         this.checkApiAvailability()
     }
 
+    componentDidMount() {
+        document.title = 'Registry-MGR'
+    }
+
     checkApiAvailability() {
         const tm = 5 * 1000;
-        const prevLogs = this.state.logs
         const check = () => {
             axios.get('/api/are_you_busy')
                 .then(res => {
                     res.data.logs.reverse()
-                    const logs = [
-                        ...res.data.logs,
-                        ...prevLogs
-                    ]
+                    const logs = res.data.logs
                     if (res.data.status === STATUS_AVAILABLE) {
                         this.getReposData()
                     } else {
@@ -59,16 +60,26 @@ class Home extends React.Component {
                             semWaiting: 2
                         })
                     }
+                    console.log(logs, this.state.logs)
+                    if (logs !== this.state.logs) {
+                        this.setState({
+                            logs: logs
+                        })
+                    }
                     setTimeout(check, tm)
-                    this.setState({
-                        logs: logs
-                    })
                 })
                 .catch(err => {
                     window.alert(err)
                 })
         }
         check()
+    }
+
+    reload() {
+        this.setState({
+            semWaiting: 2
+        })
+        this.getReposData()
     }
 
     getReposData() {
@@ -154,8 +165,6 @@ class Home extends React.Component {
         this.setState({
             semWaiting: 2
         })
-
-        let proceed = 0
 
         axios.post('/api/check_if_can_be_removed/' + url, {
             images: selected
@@ -262,6 +271,16 @@ class Home extends React.Component {
                             endIcon={<Delete />}
                         >
                             Удалить
+                        </Button>
+                    </div>
+                    <div className='button-wrapper'>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={()=>{this.reload()}}
+                            endIcon={<Autorenew />}
+                        >
+                            Обновить
                         </Button>
                     </div>
                 </div>

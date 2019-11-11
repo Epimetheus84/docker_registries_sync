@@ -36,8 +36,19 @@ class ImagesList extends React.Component {
     componentDidUpdate(prevProps) {
         if (prevProps.images === this.props.images) return
 
+        let filteredImages = []
+        let selectedRepo = ALL_REPOS
+        if (this.state.selectedRepo !== ALL_REPOS
+            && !!this.props.images[this.state.selectedRepo]) {
+            filteredImages[this.state.selectedRepo] = this.props.images[this.state.selectedRepo]
+            selectedRepo = this.state.selectedRepo
+        } else {
+            filteredImages = this.props.images
+        }
+
         this.setState({
-            filteredImages: this.props.images
+            filteredImages: filteredImages,
+            selectedRepo: selectedRepo
         })
     }
 
