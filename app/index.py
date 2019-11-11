@@ -16,6 +16,7 @@ STATUS_AVAILABLE = 'available'
 api = Flask(__name__)
 LOC_FILE = 'process.json'
 src_reg = dst_reg = docker_cli = None
+config_file_path = 'config.yml'
 
 
 def main():
@@ -31,7 +32,7 @@ def main():
 
 def init_vars():
     global src_reg, dst_reg, docker_cli
-    ymlfile = open("config.yml", 'r')
+    ymlfile = open(config_file_path, 'r')
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     try:
         src_reg = DockerRegistry(cfg['src_registry']['ADDRESS'], cfg['src_registry']['USERNAME'],
@@ -238,7 +239,7 @@ def remove_images(images, server):
 
 def filter_tags(images):
     res = list()
-    ymlfile = open("config.yml", 'r')
+    ymlfile = open(config_file_path, 'r')
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     for image_name, tags in images.items():
         if cfg['repositories'].__len__() > 0 \
@@ -259,18 +260,18 @@ def filter_tags(images):
 
 @api.route('/api/get_settings', methods=['GET'])
 def get_settings():
-    ymlfile = open("config.yml", 'r')
+    ymlfile = open(config_file_path, 'r')
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     return jsonify(cfg)
 
 
 @api.route('/api/save_settings', methods=['POST'])
 def save_settings():
-    ymlfile = open("config.yml", 'r')
+    ymlfile = open(config_file_path, 'r')
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     new_cfg = request.get_json()
 
-    cfgfile = open("config.yml", 'w+')
+    cfgfile = open(config_file_path, 'w+')
     yaml.safe_dump(new_cfg, cfgfile, allow_unicode=True, encoding='utf-8')
 
     print(log('configs changed, prev configs:'
@@ -364,7 +365,7 @@ def finish_process():
     locfile.close()
 
 
+main()
 if __name__ == "__main__":
-    main()
     api.run(port=8000)
 
