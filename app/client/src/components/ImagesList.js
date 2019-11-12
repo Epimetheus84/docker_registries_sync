@@ -2,6 +2,7 @@ import React from 'react'
 import InputLabel from '@material-ui/core/InputLabel'
 import FormControl from '@material-ui/core/FormControl'
 import Select from '@material-ui/core/Select'
+import moment from 'moment'
 
 const ALL_REPOS = '*'
 
@@ -82,10 +83,12 @@ class ImagesList extends React.Component {
                 >
                     {Object.keys(filteredImages).map(image => {
                         return filteredImages[image].map(tag => {
-                            const key = image + ':' + tag
+                            const key = image + ':' + tag.name
+                            const created = tag.created * 1000
+                            const date = moment(created).format("DD.MM.YYYY")
                             return (
                                 <option key={key} value={key}>
-                                    {key}
+                                    {key} ({ date })
                                 </option>
                             )
                         })

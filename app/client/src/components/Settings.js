@@ -8,7 +8,7 @@ import FormControlLabel from '@material-ui/core/FormControlLabel'
 import ArrowBack from '@material-ui/icons/ArrowBack'
 import { Link } from "react-router-dom"
 
-const VERSION = 1.8
+const VERSION = 1.9
 
 class Settings extends React.Component {
     constructor(props) {
@@ -123,11 +123,15 @@ class Settings extends React.Component {
                         label={ 'Необходимые репозитории через запятую' +
                             '(оставьте поле пустым, если нужны все репозитории)' }
                         value={
-                            configs.repositories.join(', ')
+                            configs.repositories.join(',')
                         }
                         onChange={(e) => {
                             let value = e.target.value
-                            value = value.split(', ')
+                            value = value.replace()
+                            value = value.replace(' ', '')
+                            value = value.replace('\t', '')
+                            console.log(value)
+                            value = value.split(',')
                             this.handleChange(value, 'repositories')
                         }}
                         margin="normal"
@@ -140,11 +144,13 @@ class Settings extends React.Component {
                         label={ 'Префиксы тегов через запятую' +
                             '(оставьте пустым, если нужны все теги)' }
                         value={
-                            configs.prefixes.join(', ')
+                            configs.prefixes.join(',')
                         }
                         onChange={(e) => {
                             let value = e.target.value
-                            value = value.split(', ')
+                            value = value.replace(' ', '')
+                            value = value.replace('\t', '')
+                            value = value.split(',')
                             this.handleChange(value, 'prefixes')
                         }}
                         margin="normal"

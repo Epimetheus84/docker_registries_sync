@@ -47,7 +47,7 @@ class Home extends React.Component {
     }
 
     checkApiAvailability() {
-        const tm = 5 * 1000;
+        const tm = 5 * 1000
         const check = () => {
             axios.get('/api/are_you_busy')
                 .then(res => {
@@ -60,7 +60,7 @@ class Home extends React.Component {
                             semWaiting: 2
                         })
                     }
-                    console.log(logs, this.state.logs)
+                    console.log(tm)
                     if (logs !== this.state.logs) {
                         this.setState({
                             logs: logs

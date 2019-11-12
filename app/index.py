@@ -16,7 +16,7 @@ STATUS_AVAILABLE = 'available'
 api = Flask(__name__)
 LOC_FILE = 'process.json'
 src_reg = dst_reg = docker_cli = None
-config_file_path = 'config.yml'
+config_file_path = 'configs/config.yml'
 
 
 def main():
@@ -35,9 +35,11 @@ def init_vars():
     ymlfile = open(config_file_path, 'r')
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
     try:
-        src_reg = DockerRegistry(cfg['src_registry']['ADDRESS'], cfg['src_registry']['USERNAME'],
+        src_reg = DockerRegistry(cfg['src_registry']['ADDRESS'],
+                                 cfg['src_registry']['USERNAME'],
                                  cfg['src_registry']['PASSWORD'])
-        dst_reg = DockerRegistry(cfg['dst_registry']['ADDRESS'], cfg['dst_registry']['USERNAME'],
+        dst_reg = DockerRegistry(cfg['dst_registry']['ADDRESS'],
+                                 cfg['dst_registry']['USERNAME'],
                                  cfg['dst_registry']['PASSWORD'])
 
         docker_cli = DockerClient()
@@ -241,6 +243,8 @@ def filter_tags(images):
     res = list()
     ymlfile = open(config_file_path, 'r')
     cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+    print('repos for sync:', cfg['repositories'])
+    print('prefixes for sync:', cfg['prefixes'])
     for image_name, tags in images.items():
         if cfg['repositories'].__len__() > 0 \
                 and cfg['repositories'][0] != '' \
@@ -319,8 +323,17 @@ def synchronize():
     # вытаскиваем только нужные, основываясь на префиксах тегов
     src_images = filter_tags(src_images)
     dst_images = filter_tags(dst_images)
+    print('sync src images list:', src_images)
+    print('sync dst images list:', dst_images)
+
     # создаем список лишних на проде
     excess_images = [item for item in dst_images if item not in src_images]
+    # создаем список недостающих на проде
+    missing_images = [item for item in src_images if item not in dst_images]
+
+    print('excess_images', excess_images)
+    print('missing_images', missing_images)
+
     # сносим лишние
     for excess_image in excess_images:
         src_image = excess_image['name'] + ':' + excess_image['tag']
@@ -331,8 +344,6 @@ def synchronize():
         else:
             add_to_loc(src_image + ' has been removed from ' + src_reg.ADDRESS)
 
-    # создаем список недостающих на проде
-    missing_images = [item for item in src_images if item not in dst_images]
     # переносим недостающие
     for missing_image in missing_images:
         src_image = missing_image['name'] + ':' + missing_image['tag']
@@ -368,4 +379,7 @@ def finish_process():
 main()
 if __name__ == "__main__":
     api.run(port=8000)
+
+# /k8s/cephfs/worked yaml/production/drs_manager
+# kubectl -n production apply -f drs_manager.yaml
 

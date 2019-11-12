@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import requests
 from log import log
+from datetime import datetime
 
 from schema import SCHEMA
+import json
 
 
 class DockerRegistry:
@@ -34,7 +36,15 @@ class DockerRegistry:
             if tags is None:
                 continue
 
-            res[repository] = tags
+            filtered_tags = list()
+            for tag in tags:
+                filtered_tags.append({
+                    'name': tag,
+                    'created': self.get_creation_date(repository, tag)
+                })
+
+            filtered_tags.sort(key=lambda t: t['created'])
+            res[repository] = filtered_tags
 
         return res
 
@@ -75,10 +85,23 @@ class DockerRegistry:
     def remove_image(self, repo, tag):
         image_id = self.get_image_id(repo, tag)
         print(log('Docker registry ' + self.ADDRESS + ' remove image ' + repo + ':' + tag))
-        
+
         if not image_id:
             return False
 
         requests.delete(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + image_id,
                         headers=self.headers)
         return True
+
+    def get_creation_date(self, repo, tag):
+        response = requests.get(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + tag)
+
+        response = response.json()
+        if 'history' not in response:
+            return 0
+
+        json_response = json.loads(response['history'][0]['v1Compatibility'])
+
+        datetime_object = datetime.strptime(json_response['created'][:-4], '%Y-%m-%dT%H:%M:%S.%f')
+        return datetime_object.timestamp()
+
