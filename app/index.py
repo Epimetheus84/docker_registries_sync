@@ -16,7 +16,7 @@ STATUS_AVAILABLE = 'available'
 api = Flask(__name__)
 LOC_FILE = 'process.json'
 src_reg = dst_reg = docker_cli = None
-config_file_path = 'configs/config.yml'
+config_file_path = 'config.yml'
 
 
 def main():
