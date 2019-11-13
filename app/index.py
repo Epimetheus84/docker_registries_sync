@@ -64,7 +64,7 @@ def add_to_loc(action, status='default'):
 
     data['logs'].append({
         'time': time,
-        'status': status,
+        'class': status,
         'value': action
     })
 

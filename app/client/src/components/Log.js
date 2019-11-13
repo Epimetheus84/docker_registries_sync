@@ -6,7 +6,7 @@ class Log extends React.Component {
         return (
             <div>
                 {Object.values(data).map(log => {
-                    return <div><span className="time">{log.time}</span><span className={log.status}>{log.value}</span></div>
+                    return <div><span className="time">{log.time}</span><span className={log.class}>{log.value}</span></div>
                 })}
             </div>
         )

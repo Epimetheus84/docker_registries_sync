@@ -2,6 +2,7 @@
 import requests
 from log import log
 from datetime import datetime
+import time
 
 from schema import SCHEMA
 import json
@@ -43,7 +44,7 @@ class DockerRegistry:
                     'created': self.get_creation_date(repository, tag)
                 })
 
-            filtered_tags.sort(key=lambda t: t['created'])
+            filtered_tags.sort(key=lambda t: t['created'], reverse=True)
             res[repository] = filtered_tags
 
         return res
@@ -103,5 +104,5 @@ class DockerRegistry:
         json_response = json.loads(response['history'][0]['v1Compatibility'])
 
         datetime_object = datetime.strptime(json_response['created'][:-4], '%Y-%m-%dT%H:%M:%S.%f')
-        return datetime_object.timestamp()
+        return time.mktime(datetime_object.timetuple())
 
