@@ -336,9 +336,9 @@ def synchronize():
 
     # сносим лишние
     for excess_image in excess_images:
-        src_image = excess_image['name'] + ':' + excess_image['tag']
+        src_image = excess_image['name'] + ':' + excess_image['tag']['name']
         add_to_loc(src_image + ' will be removed from ' + src_reg.ADDRESS)
-        result = dst_reg.remove_image(excess_image['name'], excess_image['tag'])
+        result = dst_reg.remove_image(excess_image['name'], excess_image['tag']['name'])
         if not result:
             add_to_loc(src_image + ' error during removing from ' + src_reg.ADDRESS, 'error')
         else:
@@ -346,9 +346,9 @@ def synchronize():
 
     # переносим недостающие
     for missing_image in missing_images:
-        src_image = missing_image['name'] + ':' + missing_image['tag']
+        src_image = missing_image['name'] + ':' + missing_image['tag']['name']
         add_to_loc(src_image + ' will be copied from ' + src_reg.ADDRESS + ' to ' + dst_reg.ADDRESS)
-        move_image(src_reg.ADDRESS, dst_reg.ADDRESS, missing_image['name'], missing_image['tag'])
+        move_image(src_reg.ADDRESS, dst_reg.ADDRESS, missing_image['name'], missing_image['tag']['name'])
         add_to_loc(src_image + ' has been copied from ' + src_reg.ADDRESS + ' to ' + dst_reg.ADDRESS)
 
     print(log('synchronization ended'))

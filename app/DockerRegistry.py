@@ -93,10 +93,13 @@ class DockerRegistry:
         if not image_id:
             return False
 
+        self.remove_date_from_cache(repo, tag)
+        duplicates = self.find_duplicates(repo, tag, image_id)
+        for duplicate in duplicates:
+            self.remove_date_from_cache(repo, duplicate)
+
         requests.delete(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + image_id,
                         headers=self.headers)
-
-        self.remove_date_from_cache(repo, tag)
 
         return True
 
@@ -104,6 +107,7 @@ class DockerRegistry:
         date_cache_file = open(self.date_cache_file_path, 'r')
         data = json.load(date_cache_file)
         date_cache_file.close()
+
         if repo + ':' + tag in data:
             del data[repo + ':' + tag]
             date_cache_file = open(self.date_cache_file_path, 'w')
