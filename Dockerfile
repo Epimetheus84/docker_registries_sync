@@ -27,7 +27,7 @@ ENV TIMEOUT=700
 
 LABEL Description="This image is used to synchronize docker registries" \
         Vendor="Novelty" \
-        Version="1.11" \
+        Version="1.12" \
         maintainer="eduard@novelty.kz"
 
 CMD ["./start.sh"]

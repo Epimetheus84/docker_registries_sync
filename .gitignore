@@ -4,4 +4,4 @@ app/__pycache__
 configs
 certs
 process.json
-cache
+app/cache

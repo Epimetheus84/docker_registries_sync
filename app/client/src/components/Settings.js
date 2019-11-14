@@ -8,7 +8,7 @@ import FormControlLabel from '@material-ui/core/FormControlLabel'
 import ArrowBack from '@material-ui/icons/ArrowBack'
 import { Link } from "react-router-dom"
 
-const VERSION = 1.11
+const VERSION = 1.12
 
 class Settings extends React.Component {
     constructor(props) {
