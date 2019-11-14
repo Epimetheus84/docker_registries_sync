@@ -33,7 +33,7 @@ class DockerClient:
         try:
             self.client.images.remove(image)
         except requests.exceptions.ReadTimeout:
-            print('Read timout error image: ' + image, 'check image validity')
+            print('Read timeout error image: ' + image, 'check image validity')
 
         print(log('Docker client remove image ' + image))
         return True

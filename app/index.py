@@ -252,7 +252,7 @@ def filter_tags(images):
             continue
         for prefix in cfg['prefixes']:
             for tag in tags:
-                if not tag.startswith(prefix):
+                if not tag['name'].startswith(prefix):
                     continue
                 res.append({
                     'name': image_name,

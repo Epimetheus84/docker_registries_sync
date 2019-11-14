@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import requests
+import os
 from log import log
 from datetime import datetime
 import time
@@ -12,11 +13,13 @@ class DockerRegistry:
     ADDRESS = 'localhost:5000'
     USERNAME = ''
     PASSWORD = ''
+    date_cache_file_path = ''
 
     def __init__(self, address='', username='', password=''):
         self.ADDRESS = address
         self.USERNAME = username
         self.PASSWORD = password
+        self.date_cache_file_path = 'cache/' + address + '_dates.json'
         self.headers = {'Accept': 'application/vnd.docker.distribution.manifest.v2+json'}
 
     def repositories_list(self):
@@ -92,9 +95,41 @@ class DockerRegistry:
 
         requests.delete(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + image_id,
                         headers=self.headers)
+
+        self.remove_date_from_cache(repo, tag)
+
         return True
 
+    def remove_date_from_cache(self, repo, tag):
+        date_cache_file = open(self.date_cache_file_path, 'r')
+        data = json.load(date_cache_file)
+        date_cache_file.close()
+        if repo + ':' + tag in data:
+            del data[repo + ':' + tag]
+            date_cache_file = open(self.date_cache_file_path, 'w')
+            json.dump(data, date_cache_file)
+            date_cache_file.close()
+
     def get_creation_date(self, repo, tag):
+        if not os.path.exists(self.date_cache_file_path):
+            data = {}
+        else:
+            date_cache_file = open(self.date_cache_file_path, 'r')
+            data = json.load(date_cache_file)
+            date_cache_file.close()
+
+        if repo + ':' + tag not in data:
+            date = self.request_creation_date(repo, tag)
+            data[repo + ':' + tag] = date
+            date_cache_file = open(self.date_cache_file_path, 'w')
+            json.dump(data, date_cache_file)
+            date_cache_file.close()
+        else:
+            date = data[repo + ':' + tag]
+
+        return date
+
+    def request_creation_date(self, repo, tag):
         response = requests.get(SCHEMA + self.ADDRESS + '/v2/' + repo + '/manifests/' + tag)
 
         response = response.json()
@@ -105,4 +140,3 @@ class DockerRegistry:
 
         datetime_object = datetime.strptime(json_response['created'][:-4], '%Y-%m-%dT%H:%M:%S.%f')
         return time.mktime(datetime_object.timetuple())
-
